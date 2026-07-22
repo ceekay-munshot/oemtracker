@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node / tooling
+node_modules/
+
+# OS / editor
+.DS_Store
+*.swp
+
+# Local scratch / test output
+scratch_shots/
+*.log

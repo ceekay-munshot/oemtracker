@@ -30,8 +30,8 @@ export function render(root, ctx) {
     `Latest · ${ls.period || '—'}`, compactNum(ls.value),
     deltaNode(ls.yoy, '%'), `${metricLabel(ds, metric)} · YoY`));
   if (fy) tiles.appendChild(statTile(
-    `FY${String(fy.fy).slice(2)} to date`, compactNum(fy.value),
-    deltaNode(fy.yoy, '%'), `${fy.nPeriods} ${base === 'quarterly' ? 'qtrs' : 'months'} · YoY`));
+    `FY${String(fy.fy).slice(2)} so far`, compactNum(fy.value),
+    deltaNode(fy.yoy, '%'), `${fy.nPeriods} ${base === 'quarterly' ? 'qtr' : 'mo'} · vs same period LY`));
   if (leader) tiles.appendChild(statTile(
     'Market leader', fmtPct(leader.share, 1),
     null, `${leader.name}`));

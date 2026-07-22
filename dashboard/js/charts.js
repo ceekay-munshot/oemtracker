@@ -1,7 +1,7 @@
 // charts.js — ECharts option factories. Every chart in the app is built here so they share
 // one visual language: glass tooltips, smooth glowing trend lines with a lit latest-point,
-// gradient area/bar fills, clean gridless axes, the indigo/violet palette, and dataZoom on
-// long histories.
+// gradient area/bar fills, clean gridless axes and the indigo/violet palette. Time windowing
+// is driven entirely by the Range presets (1Y/3Y/5Y/Max) in the filter bar — no zoom slider.
 
 import { compactNum, fmtInt, fmtPct, periodLabel, periodLabelLong } from './format.js';
 
@@ -60,18 +60,8 @@ function yAxis(unit, opts = {}) {
     ...(opts.min != null ? { min: opts.min } : {}),
   };
 }
-function gridFor(hasZoom) {
-  return { left: 10, right: 16, top: 16, bottom: hasZoom ? 42 : 12, containLabel: true };
-}
-function dataZoom(nPeriods) {
-  return [{
-    type: 'slider', height: 16, bottom: 10, borderColor: 'transparent',
-    backgroundColor: '#eef1f7', fillerColor: 'rgba(79,70,229,.12)',
-    handleStyle: { color: '#fff', borderColor: '#4f46e5', borderWidth: 1.5 },
-    moveHandleStyle: { color: '#c7cdf5' }, dataBackground: { lineStyle: { color: '#c8d0dc' }, areaStyle: { color: '#e3e6ec' } },
-    selectedDataBackground: { lineStyle: { color: '#4f46e5' }, areaStyle: { color: 'rgba(79,70,229,.15)' } },
-    textStyle: { color: '#94a3b8', fontSize: 10 }, start: 0, end: 100,
-  }, { type: 'inside' }];
+function gridFor() {
+  return { left: 10, right: 16, top: 16, bottom: 12, containLabel: true };
 }
 
 // Build the tooltip formatter (glass card). `closest` picks the single nearest series to the
@@ -122,7 +112,6 @@ function makeFormatter(keys, freq, unit, provisional, getCursorVal, closest) {
 export function lineOption(cfg) {
   const { periods = [], freq = 'monthly', unit = 'num', series = [], area = false, zeroLine = false } = cfg;
   const labels = periods.map((k) => periodLabel(k, freq));
-  const hasZoom = periods.length > 40;
 
   const ecSeries = series.map((s, i) => {
     const color = s.color || colorAt(i);
@@ -154,7 +143,7 @@ export function lineOption(cfg) {
 
   const opt = {
     color: PALETTE,
-    grid: gridFor(hasZoom),
+    grid: gridFor(),
     tooltip: { trigger: 'axis', axisPointer: axisPointer(), ...GLASS,
       formatter: makeFormatter(periods, freq, unit, cfg.provisional) },
     xAxis: xAxis(labels),
@@ -168,7 +157,6 @@ export function lineOption(cfg) {
     opt.series.push({ type: 'line', data: labels.map(() => 0), silent: true, symbol: 'none',
       lineStyle: { color: '#cbd2dc', width: 1, type: 'dashed' }, tooltip: { show: false }, z: 1, name: '__zero' });
   }
-  if (hasZoom) opt.dataZoom = dataZoom(periods.length);
   // meta used by TrendCard to wire closest-series tooltip
   opt.__meta = { keys: periods, freq, unit, provisional: cfg.provisional, closestEligible: series.length > 5 };
   return opt;
@@ -178,7 +166,6 @@ export function lineOption(cfg) {
 export function barOption(cfg) {
   const { periods = [], freq = 'monthly', unit = 'num', series = [] } = cfg;
   const labels = periods.map((k) => periodLabel(k, freq));
-  const hasZoom = periods.length > 40;
   const ecSeries = series.map((s, i) => {
     const color = s.color || colorAt(i);
     return {
@@ -193,13 +180,12 @@ export function barOption(cfg) {
     };
   });
   const opt = {
-    color: PALETTE, grid: gridFor(hasZoom),
+    color: PALETTE, grid: gridFor(),
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(79,70,229,.06)' } }, ...GLASS,
       formatter: makeFormatter(periods, freq, unit, cfg.provisional) },
     xAxis: xAxis(labels), yAxis: yAxis(unit, { scale: false }),
     series: ecSeries, animationDuration: 560, animationEasing: 'cubicOut',
   };
-  if (hasZoom) opt.dataZoom = dataZoom(periods.length);
   opt.__meta = { keys: periods, freq, unit, provisional: cfg.provisional, closestEligible: false };
   return opt;
 }
@@ -208,7 +194,6 @@ export function barOption(cfg) {
 export function stackedOption(cfg) {
   const { periods = [], freq = 'monthly', unit = 'num', groups = [], percent = false } = cfg;
   const labels = periods.map((k) => periodLabel(k, freq));
-  const hasZoom = periods.length > 40;
 
   // For percent mode, normalise each period to 100.
   let data = groups.map((g) => g.values.slice());
@@ -229,14 +214,13 @@ export function stackedOption(cfg) {
     };
   });
   const opt = {
-    color: PALETTE, grid: gridFor(hasZoom),
+    color: PALETTE, grid: gridFor(),
     tooltip: { trigger: 'axis', axisPointer: axisPointer(), ...GLASS,
       formatter: makeFormatter(periods, freq, percent ? 'pct' : unit, cfg.provisional) },
     xAxis: xAxis(labels),
     yAxis: yAxis(percent ? 'pct' : unit, percent ? { max: 100, min: 0 } : { scale: false }),
     series: ecSeries, animationDuration: 620, animationEasing: 'cubicOut',
   };
-  if (hasZoom) opt.dataZoom = dataZoom(periods.length);
   opt.__meta = { keys: periods, freq, unit: percent ? 'pct' : unit, provisional: cfg.provisional, closestEligible: false };
   return opt;
 }
@@ -245,11 +229,10 @@ export function stackedOption(cfg) {
 export function comboBarLineOption(cfg) {
   const { periods = [], freq = 'monthly', bars, line } = cfg;
   const labels = periods.map((k) => periodLabel(k, freq));
-  const hasZoom = periods.length > 40;
   const barColor = bars.color || '#10b981';
   const lineColor = line.color || '#4f46e5';
   const opt = {
-    grid: gridFor(hasZoom),
+    grid: gridFor(),
     tooltip: { trigger: 'axis', axisPointer: { type: 'cross', crossStyle: { color: '#cbd2dc' }, lineStyle: { color: '#cbd2dc', type: 'dashed' } }, ...GLASS,
       formatter: (params) => {
         const idx = params[0].dataIndex;
@@ -282,7 +265,6 @@ export function comboBarLineOption(cfg) {
     ],
     animationDuration: 620,
   };
-  if (hasZoom) opt.dataZoom = dataZoom(periods.length);
   opt.__meta = { keys: periods, freq, unit: 'num', provisional: cfg.provisional, closestEligible: false };
   return opt;
 }

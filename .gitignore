@@ -14,3 +14,10 @@ node_modules/
 # Local scratch / test output
 scratch_shots/
 *.log
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example

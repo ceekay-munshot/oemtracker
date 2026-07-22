@@ -18,6 +18,26 @@ function hexA(hex, a) {
   return `rgba(${r},${g},${b},${a})`;
 }
 
+// Clip leading/trailing periods where NO displayed series has data, so a chart starts and ends
+// where data actually exists (e.g. SIAM only begins splitting Domestic sales ~FY01) instead of
+// rendering years of empty axis. Purely presentational — missing points inside the span stay
+// as gaps; nothing is fabricated.
+function dataSpan(periods, valueArrays) {
+  let first = -1, last = -1;
+  for (let i = 0; i < periods.length; i++) {
+    let has = false;
+    for (const a of valueArrays) { if (a && a[i] != null) { has = true; break; } }
+    if (has) { if (first < 0) first = i; last = i; }
+  }
+  return first < 0 ? null : [first, last];
+}
+function clipEmpty(periods, series) {
+  const span = dataSpan(periods, series.map((s) => s.values));
+  if (!span || (span[0] === 0 && span[1] === periods.length - 1)) return [periods, series];
+  const sl = (a) => a.slice(span[0], span[1] + 1);
+  return [sl(periods), series.map((s) => ({ ...s, values: sl(s.values) }))];
+}
+
 // --- value formatters per unit -------------------------------------------------------
 function axisFmt(unit) {
   if (unit === 'pct') return (v) => (v == null ? '' : v.toFixed(0) + '%');
@@ -110,7 +130,8 @@ function makeFormatter(keys, freq, unit, provisional, getCursorVal, closest) {
 // --- line / area chart ---------------------------------------------------------------
 // cfg: { periods(keys), freq, unit, series:[{name,values,color?}], area, zeroLine, provisional(Set) }
 export function lineOption(cfg) {
-  const { periods = [], freq = 'monthly', unit = 'num', series = [], area = false, zeroLine = false } = cfg;
+  let { periods = [], freq = 'monthly', unit = 'num', series = [], area = false, zeroLine = false } = cfg;
+  [periods, series] = clipEmpty(periods, series);
   const labels = periods.map((k) => periodLabel(k, freq));
 
   const ecSeries = series.map((s, i) => {
@@ -164,7 +185,8 @@ export function lineOption(cfg) {
 
 // --- bar chart -----------------------------------------------------------------------
 export function barOption(cfg) {
-  const { periods = [], freq = 'monthly', unit = 'num', series = [] } = cfg;
+  let { periods = [], freq = 'monthly', unit = 'num', series = [] } = cfg;
+  [periods, series] = clipEmpty(periods, series);
   const labels = periods.map((k) => periodLabel(k, freq));
   const ecSeries = series.map((s, i) => {
     const color = s.color || colorAt(i);
@@ -192,7 +214,8 @@ export function barOption(cfg) {
 
 // --- stacked area (segment / share mix), optional 100% ------------------------------
 export function stackedOption(cfg) {
-  const { periods = [], freq = 'monthly', unit = 'num', groups = [], percent = false } = cfg;
+  let { periods = [], freq = 'monthly', unit = 'num', groups = [], percent = false } = cfg;
+  [periods, groups] = clipEmpty(periods, groups);
   const labels = periods.map((k) => periodLabel(k, freq));
 
   // For percent mode, normalise each period to 100.
@@ -227,7 +250,13 @@ export function stackedOption(cfg) {
 
 // --- dual-axis: bars (volume) + line (penetration %) — for EV tracker ---------------
 export function comboBarLineOption(cfg) {
-  const { periods = [], freq = 'monthly', bars, line } = cfg;
+  let { periods = [], freq = 'monthly', bars, line } = cfg;
+  const span = dataSpan(periods, [bars.values, line.values]);
+  if (span && !(span[0] === 0 && span[1] === periods.length - 1)) {
+    periods = periods.slice(span[0], span[1] + 1);
+    bars = { ...bars, values: bars.values.slice(span[0], span[1] + 1) };
+    line = { ...line, values: line.values.slice(span[0], span[1] + 1) };
+  }
   const labels = periods.map((k) => periodLabel(k, freq));
   const barColor = bars.color || '#10b981';
   const lineColor = line.color || '#4f46e5';

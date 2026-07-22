@@ -12,8 +12,8 @@ export function render(root, ctx) {
 
   if (!ds.ev) {
     const c = TrendCard({ title: 'EV Tracker', source: ds.source, option: null,
-      emptyTitle: 'No EV data for this selection',
-      emptyHint: 'EV penetration is available on the Internal DB source for Two-Wheelers, Three-Wheelers and Commercial Vehicles. Switch source/category in the filter bar.' });
+      emptyTitle: `No EV data for ${ds.category_label}`,
+      emptyHint: 'EV tracking (penetration, EV-vs-ICE, EV-maker share) is available for Two-Wheelers, Three-Wheelers and Commercial Vehicles. Pick one of those categories in the filter bar.' });
     const g = el('div', { class: 'grid' }); mountCards(g, [c]); root.appendChild(g); return;
   }
 

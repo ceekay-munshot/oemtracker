@@ -13,8 +13,8 @@ export function render(root, ctx) {
 
   if (!ds.segments) {
     const c = TrendCard({ title: 'Segment Mix', source: ds.source, option: null,
-      emptyTitle: 'No segment breakdown for this selection',
-      emptyHint: 'Segment mix (body-type / class / HP band) is available on the Internal DB source. Switch source in the filter bar.' });
+      emptyTitle: `No segment breakdown for ${ds.category_label}`,
+      emptyHint: 'Segment mix (body-type / class / HP band) is available for Two-Wheelers, Passenger Vehicles, Three-Wheelers, Commercial Vehicles and Tractors. Pick one of those categories in the filter bar.' });
     const g = el('div', { class: 'grid' }); mountCards(g, [c]); root.appendChild(g); return;
   }
 

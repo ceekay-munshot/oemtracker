@@ -261,6 +261,16 @@ async function render() {
   // resolve category/source validity
   const pre = resolveState();
   if (Object.keys(pre).length) setStateSilent(pre);
+  // EV Tracker & Segment Mix exist only on the Internal DB source (SIAM has no EV/segment
+  // breakdown). Auto-select that source when the category has one, so those tabs populate
+  // instead of showing a "switch source" empty state.
+  {
+    const st = getState();
+    if ((st.tab === 'ev' || st.tab === 'segmix') && st.source !== 'internal'
+        && catMeta(st.category).sources.includes('internal')) {
+      setStateSilent({ source: 'internal' });
+    }
+  }
   const s = getState();
   const key = datasetKey(s.category, s.source);
   let ds;

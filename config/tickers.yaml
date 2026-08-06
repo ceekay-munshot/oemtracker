@@ -7,7 +7,9 @@
 
 tickers:
   Maruti Suzuki:        { nse: MARUTI,      category: [pv] }
-  Tata Motors:          { nse: TATAMOTORS,  category: [pv, mhcv, lcv] }
+  # Tata Motors demerged (Oct 2025): TATAMOTORS is retired, replaced by two listings.
+  Tata Motors PV:       { nse: TMPV,  category: [pv],            candidates: [TMPV, TMPV.NS, TMPV.BO] }
+  Tata Motors CV:       { nse: TMCV,  category: [mhcv, lcv, cv], candidates: [TMCV, TMCV.NS, TMLCV, TMLCV.NS, TMCV.BO] }
   Mahindra & Mahindra:  { nse: M&M,         category: [pv, mhcv, lcv, 3w, tractors] }
   Hyundai Motor India:  { nse: HYUNDAI,     category: [pv] }
   Bajaj Auto:           { nse: BAJAJ-AUTO,  category: [2w, 3w] }
@@ -16,8 +18,10 @@ tickers:
   Eicher Motors:        { nse: EICHERMOT,   category: [2w, mhcv, lcv] }
   Ashok Leyland:        { nse: ASHOKLEY,    category: [mhcv, lcv] }
   Escorts Kubota:       { nse: ESCORTS,     category: [tractors] }
-  SML Isuzu:            { nse: SMLISUZU,    category: [mhcv, lcv] }
-  Force Motors:         { nse: FORCEMOTORS, category: [pv, lcv] }
+  # SML Isuzu / Force Motors didn't resolve by name — add BSE numeric-code forms (yfinance uses
+  # <BSE_CODE>.BO). Resolver probes all candidates and keeps whichever the Muns API accepts.
+  SML Isuzu:            { nse: SMLISUZU,    category: [mhcv, lcv], candidates: [SMLISUZU, SMLISUZU.NS, "505192.BO"] }
+  Force Motors:         { nse: FORCEMOTORS, category: [pv, lcv],   candidates: [FORCEMOTORS, FORCEMOTORS.NS, "500033.BO"] }
   Atul Auto:            { nse: ATULAUTO,    category: [3w] }
   Olectra Greentech:    { nse: OLECTRA,     category: [mhcv] }
   Ola Electric:         { nse: OLAELEC,     category: [2w] }

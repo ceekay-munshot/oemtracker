@@ -61,12 +61,14 @@ def _firecrawl(url):
         log.info("firecrawl: skipped — no FIRECRAWL_API_KEY")
         return None
     resp = http.post(FIRECRAWL_URL, headers={"Authorization": f"Bearer {key}"},
-                     json_body={"url": url, "formats": ["markdown", "links"]},
+                     json_body={"url": url, "formats": ["markdown", "links", "html"]},
                      accept="application/json", label="firecrawl.scrape")
     data = resp.json().get("data", {})
-    return FetchResult(url, markdown=data.get("markdown", ""), html=data.get("html", ""),
-                       links=data.get("links", []) or _extract_links(data.get("markdown", "")),
-                       provider="firecrawl", raw=data)
+    md, html = data.get("markdown", ""), data.get("html", "")
+    # Combine every link source — some listing pages (FADA) put the PDF only in the HTML, as a
+    # relative href with spaces that the markdown/links views miss.
+    links = _merge_links(data.get("links", []), _extract_links(md), _extract_links(html))
+    return FetchResult(url, markdown=md, html=html, links=links, provider="firecrawl", raw=data)
 
 
 def _scrapedo(url):
@@ -175,6 +177,7 @@ def download(url, timeout=45, max_retries=1):
     If the direct fetch fails (or a host bot-blocks the runner IP), falls back to the Scrape.do
     proxy. Returns bytes, or None on failure (the caller flags it and continues).
     """
+    url = url.replace(" ", "%20")   # FADA (and other) PDF filenames contain spaces
     host = (urllib.parse.urlparse(url).hostname or "").lower()
     try:
         if host.endswith("nseindia.com"):
@@ -199,15 +202,30 @@ def download(url, timeout=45, max_retries=1):
 
 
 def _extract_links(text):
+    """Pull links from markdown OR html — absolute or relative, INCLUDING ones with spaces
+    (FADA's PDF filenames contain spaces). Callers absolutize + space-encode before fetching."""
     if not text:
         return []
-    md = re.findall(r"\]\((https?://[^)\s]+)\)", text)
-    html = re.findall(r'href=["\'](https?://[^"\']+)["\']', text)
+    found = []
+    found += re.findall(r"\]\(\s*([^)]+?\.pdf[^)]*)\)", text, re.I)   # markdown links to a .pdf (allows spaces)
+    found += re.findall(r"\]\((https?://[^)\s]+)\)", text)             # any other absolute markdown link
+    found += re.findall(r'(?:href|src)\s*=\s*["\']([^"\']+)["\']', text, re.I)  # any html href/src (rel/abs/spaces)
     seen, out = set(), []
-    for l in md + html:
-        if l not in seen:
+    for l in (x.strip() for x in found):
+        if l and l not in seen:
             seen.add(l)
             out.append(l)
+    return out
+
+
+def _merge_links(*lists):
+    seen, out = set(), []
+    for lst in lists:
+        for l in (lst or []):
+            l = str(l).strip()
+            if l and l not in seen:
+                seen.add(l)
+                out.append(l)
     return out
 
 

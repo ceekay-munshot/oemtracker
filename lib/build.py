@@ -205,6 +205,8 @@ def build_overlays(store, out_dir):
                "note": "Listed-OEM monthly disclosures (BSE/NSE). Provisional until SIAM confirms.",
                "categories": {c: {o: dict(pers) for o, pers in oems.items()} for c, oems in company.items()}}
     written.append(_write_json(out_dir, "company_flash.json", overlay))
+    # JSONP twin so the dashboard can load the overlay offline (file://), like data/*.js.
+    written.append(_write_js_twin(out_dir, "company_flash", overlay, "__OEM_FLASH", "oem-flash"))
 
     # ---- FADA retail ------------------------------------------------------------------
     fada = defaultdict(lambda: defaultdict(dict))
@@ -255,6 +257,15 @@ def _write_json(out_dir, name, obj):
     path = os.path.join(out_dir, name)
     with open(path, "w") as f:
         json.dump(obj, f, separators=(",", ":"))
+    return path
+
+
+def _write_js_twin(out_dir, name, obj, glob, event):
+    """Offline-safe JSONP twin: registers the payload on a global and fires a DOM event."""
+    path = os.path.join(out_dir, f"{name}.js")
+    with open(path, "w") as f:
+        f.write(f"window.{glob}=" + json.dumps(obj, separators=(",", ":")) + ";"
+                f"window.dispatchEvent(new Event('{event}'));")
     return path
 
 

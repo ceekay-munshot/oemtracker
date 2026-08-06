@@ -13,10 +13,12 @@ const DEFAULTS = {
   range: '5y',        // 1y | 3y | 5y | max
   activeOnly: true,
   entities: [],       // ids, dataset-scoped
+  showFlash: true,    // show the provisional company-flash overlay on SIAM trend charts
 };
 
 const KEYMAP = { tab: 'tab', category: 'cat', source: 'src', metric: 'metric', freq: 'freq',
-  valueMode: 'mode', rebase: 'rb', range: 'range', activeOnly: 'act', entities: 'ents' };
+  valueMode: 'mode', rebase: 'rb', range: 'range', activeOnly: 'act', entities: 'ents',
+  showFlash: 'fl' };
 
 let state = { ...DEFAULTS };
 const listeners = new Set();

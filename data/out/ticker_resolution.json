@@ -1,0 +1,98 @@
+{
+  "Ashok Leyland": {
+    "note": "",
+    "ok": true,
+    "symbol": "ASHOKLEY",
+    "via": "financial_tables"
+  },
+  "Ather Energy": {
+    "note": "",
+    "ok": true,
+    "symbol": "ATHERENERG",
+    "via": "financial_tables"
+  },
+  "Atul Auto": {
+    "note": "",
+    "ok": true,
+    "symbol": "ATULAUTO",
+    "via": "financial_tables"
+  },
+  "Bajaj Auto": {
+    "note": "",
+    "ok": true,
+    "symbol": "BAJAJ-AUTO",
+    "via": "corp_announcements"
+  },
+  "Eicher Motors": {
+    "note": "",
+    "ok": true,
+    "symbol": "EICHERMOT",
+    "via": "financial_tables"
+  },
+  "Escorts Kubota": {
+    "note": "",
+    "ok": true,
+    "symbol": "ESCORTS",
+    "via": "financial_tables"
+  },
+  "Force Motors": {
+    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/FORCEMOTORS.NS: {\"statusCode\":404,\"timestamp\":\"2026-08-06T11:31:21.697Z\",\"path\":\"/filings/",
+    "ok": false,
+    "symbol": null,
+    "via": "financial_tables"
+  },
+  "Hero MotoCorp": {
+    "note": "",
+    "ok": true,
+    "symbol": "HEROMOTOCO",
+    "via": "financial_tables"
+  },
+  "Hyundai Motor India": {
+    "note": "",
+    "ok": true,
+    "symbol": "HYUNDAI",
+    "via": "corp_announcements"
+  },
+  "Mahindra & Mahindra": {
+    "note": "",
+    "ok": true,
+    "symbol": "M&M",
+    "via": "financial_tables"
+  },
+  "Maruti Suzuki": {
+    "note": "",
+    "ok": true,
+    "symbol": "MARUTI",
+    "via": "financial_tables"
+  },
+  "Ola Electric": {
+    "note": "",
+    "ok": true,
+    "symbol": "OLAELEC",
+    "via": "financial_tables"
+  },
+  "Olectra Greentech": {
+    "note": "",
+    "ok": true,
+    "symbol": "OLECTRA",
+    "via": "financial_tables"
+  },
+  "SML Isuzu": {
+    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/SMLISUZU.NS: {\"statusCode\":404,\"timestamp\":\"2026-08-06T11:31:20.138Z\",\"path\":\"/filings/fin",
+    "ok": false,
+    "symbol": null,
+    "via": "financial_tables"
+  },
+  "TVS Motor": {
+    "note": "",
+    "ok": true,
+    "symbol": "TVSMOTOR",
+    "via": "financial_tables"
+  },
+  "Tata Motors": {
+    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/TATAMOTORS.NS: {\"statusCode\":404,\"timestamp\":\"2026-08-06T11:15:56.093Z\",\"path\":\"/filings/f",
+    "ok": false,
+    "symbol": null,
+    "via": "financial_tables"
+  }
+}

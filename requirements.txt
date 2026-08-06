@@ -1,0 +1,9 @@
+# Auto OEM Trends Tracker — data-automation pipeline dependencies.
+# The dashboard front-end has NO build step and NO runtime deps; this file is only for the
+# Python pipeline (seed / fetch / OCR / extract / normalize / audit / build) run in CI.
+
+openpyxl>=3.1        # read the two seed workbooks
+requests>=2.31       # all REST calls (Muns, Firecrawl, Scrape.do, Mistral)
+PyYAML>=6.0          # config/*.yaml
+jsonschema>=4.0      # force schema-valid LLM extraction
+boto3>=1.34          # Bedrock (Claude) runtime — supports AWS creds or Bedrock API key

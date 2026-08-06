@@ -14,3 +14,23 @@ node_modules/
 # Local scratch / test output
 scratch_shots/
 *.log
+
+# ---- Data-automation pipeline -------------------------------------------------------
+# Raw fetched artifacts (PDFs etc.) and the OCR/LLM cache are large and re-derivable, so
+# they are NOT committed. Provenance still persists in the committed store (each record's
+# `source_ref` carries url + sha256); the cache is persisted across CI runs via actions/cache.
+data/raw/**
+!data/raw/.gitkeep
+data/cache/**
+!data/cache/.gitkeep
+
+# Manual intake is a drop-zone; dropped files are moved to data/raw/manual after processing.
+data/intake/*
+!data/intake/.gitkeep
+
+# Per-run ephemera and adapter staging (build promotes _*.json -> the committed overlays).
+data/audit_status.json
+data/out/_*.json
+
+# NOTE (committed on purpose): data/store/** (the append-only history), data/*.json + data/*.js
+# (the dashboard contract), data/out/*.json (derived overlays), data/audit_report.md.

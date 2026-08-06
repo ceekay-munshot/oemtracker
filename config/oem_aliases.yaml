@@ -1,0 +1,97 @@
+# config/oem_aliases.yaml — canonicalize OEM names so a company's history stays continuous
+# across renames and across sources (SIAM vs company disclosure vs FADA).
+#
+# Format:  canonical_name: [list, of, aliases, as, printed, by, sources]
+# Matching is case-insensitive and ignores punctuation/whitespace (see lib/normalize.py).
+#
+# IMPORTANT: the SEED does not apply this map — the workbook column names ARE the canonical
+# identities for the seeded history. This map is applied to LIVE source names so they land on
+# the same entity as the seeded history. Any live `oem_raw` not resolvable here is NOT dropped:
+# it is kept and flagged "unmapped OEM" by the audit for a human to add below.
+
+aliases:
+  Hero MotoCorp:
+    - Hero Honda
+    - Hero Honda Motors
+    - Hero MotoCorp Ltd
+    - Hero Motocorp
+
+  Maruti Suzuki:
+    - Maruti Udyog
+    - Maruti Udyog Ltd
+    - Maruti Suzuki India
+    - Maruti Suzuki India Ltd
+
+  Honda Motorcycle & Scooter India:
+    - HMSI
+    - Honda Motorcycle and Scooter India
+    - Honda Motorcycle & Scooter India Pvt Ltd
+
+  Honda Cars India:
+    - Honda Siel Cars
+    - Honda Siel Cars India
+    - Honda Cars India Ltd
+
+  Eicher Motors:
+    - VECV
+    - VE Commercial Vehicles
+    - VECV-Eicher
+    - Volvo Eicher Commercial Vehicles
+
+  Tata Motors:
+    - TELCO
+    - Tata Engineering
+    - Tata Motors Ltd
+
+  Mahindra & Mahindra:
+    - M&M
+    - Mahindra and Mahindra
+    - Mahindra & Mahindra Ltd
+
+  TVS Motor:
+    - TVS Motor Company
+    - TVS Motor Company Ltd
+    - TVS Suzuki
+
+  Bajaj Auto:
+    - Bajaj Auto Ltd
+
+  Toyota Kirloskar Motor:
+    - Toyota Kirloskar
+    - Toyota Kirloskar Motor Pvt Ltd
+
+  Hyundai Motor India:
+    - Hyundai Motor India Ltd
+    - Hyundai Motor
+
+  Royal Enfield:
+    - Royal Enfield (Unit of Eicher Ltd)
+    - Royal Enfield Unit of Eicher Ltd
+
+  Kia India:
+    - Kia Motors
+    - Kia Motors India
+    - Kia India Pvt Ltd
+
+  Skoda Auto India:
+    - Skoda Auto India Pvt Ltd
+    - SkodaAuto India
+
+  Volkswagen India:
+    - Volkswagen India Pvt Ltd
+    - VW India
+
+  Ashok Leyland:
+    - Ashok Leyland Ltd
+
+  Ola Electric:
+    - Ola Electric Technologies
+    - Ola Electric Mobility
+
+  Ather Energy:
+    - Ather Energy Pvt Ltd
+    - Ather Energy Pvt. Ltd
+
+  Olectra Greentech:
+    - Olectra Greentech Limited
+    - Olectra Greentech Ltd

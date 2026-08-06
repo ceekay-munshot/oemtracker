@@ -1,0 +1,88 @@
+# config/sources.yaml — per-lane configuration (urls, cadence, lane role, enable flags).
+#
+# Each adapter reads its block here. `enabled: false` cleanly disables a lane (it logs
+# "disabled" and is skipped). A lane also self-skips when its required secret is missing.
+# One source per table (golden rule #3) — these lanes never blend into one dashboard series.
+
+lanes:
+  # A — Flash: listed-OEM monthly sales from BSE/NSE corporate announcements (via Muns).
+  company_announcements:
+    enabled: true
+    lane: A
+    store_source: "Company(BSE/NSE)"
+    cadence: "monthly (~1st-5th)"
+    lookback_days: 45
+    # subject keywords that mark an announcement as a monthly-sales / production update
+    subject_keywords:
+      - "sales"
+      - "monthly sales"
+      - "sales volume"
+      - "production"
+      - "sale of vehicles"
+      - "business update"
+      - "provisional sales"
+      - "total sales"
+    requires_secret: MUNS_TOKEN
+
+  # B — Backbone: SIAM monthly release. Primary for core trend & share tables.
+  siam:
+    enabled: true
+    lane: B
+    store_source: "SIAM"
+    cadence: "monthly (weeks after month-end)"
+    # Public landing/press-release page(s); the adapter discovers the latest PDF from here.
+    press_url: "https://www.siam.in/pressrelease.aspx"
+    # Member-only per-OEM detail: only used if credentials are present (Playwright login path).
+    member_login_url: "https://www.siam.in/login.aspx"
+    member_only_detail: true
+    requires_secret: null   # public path needs no Muns token; scraping key optional
+
+  # C — Retail: FADA monthly retail-registration press release.
+  fada:
+    enabled: true
+    lane: C
+    store_source: "FADA"
+    cadence: "monthly (~mid-month)"
+    press_url: "https://fada.in/press-release.php"
+    metric: "Retail"
+    requires_secret: null
+
+  # D — Financials: screener financials via Muns (overlay only; separate from volume lanes).
+  financials:
+    enabled: true
+    lane: D
+    store_source: "Muns-Financials"
+    cadence: "quarterly"
+    period: "quarterly"
+    form: "consolidated"
+    requires_secret: MUNS_TOKEN
+
+  # E — Commentary: concall transcripts via Muns Combined Filings (form: concalls).
+  concalls:
+    enabled: true
+    lane: E
+    store_source: "Concalls"
+    cadence: "quarterly"
+    lookback_days: 200
+    requires_secret: MUNS_TOKEN
+
+  # Manual: low-frequency top-ups dropped into data/intake/ (e.g. ACMA half-yearly).
+  manual:
+    enabled: true
+    lane: Manual
+    intake_dir: "data/intake"
+    processed_dir: "data/raw/manual"
+
+# Fetch provider preference for scraping (first available wins; each self-skips w/o its key).
+fetch_providers: [firecrawl, scrapedo, muns_web_reader]
+
+# Extraction brain
+ocr:
+  provider: mistral
+  requires_secret: MISTRAL_API_KEY
+extract:
+  provider: bedrock
+  requires_secret_any: [BEDROCK_API_KEY, AWS_ACCESS_KEY_ID]
+  model_env: BEDROCK_CLAUDE_MODEL_ID
+  max_llm_calls_per_run: 200
+  min_confidence: 0.55   # figures below this are flagged for review, never written blind

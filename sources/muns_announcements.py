@@ -21,7 +21,9 @@ from datetime import date, timedelta
 
 from lib import model as M
 from lib import muns as muns_mod
-from lib.normalize import (canonical, check_domestic_export_total, month_to_quarter_key)
+from lib import tickers as tk
+from lib.logging_util import redact_text
+from lib.normalize import canonical, check_domestic_export_total
 from lib.store import make_record
 from sources._common import min_confidence, pdf_to_json
 from sources.base import Adapter, register
@@ -85,33 +87,58 @@ class MunsAnnouncementsAdapter(Adapter):
         keywords = [k.lower() for k in self.cfg.get("subject_keywords", ["sales"])]
 
         items = []
+        coverage = {}  # oem -> {"resolved": symbol|None, "matches": int}
         for oem, meta in tickers.items():
-            symbol = meta.get("nse")
-            if not symbol:
+            if not meta.get("nse") and not meta.get("yf"):
                 continue
-            try:
-                anns = client.corp_announcements(symbol, froms, tos)
-            except muns_mod.MunsError as e:
-                self.log.warning("announcements fetch failed for %s: %s", symbol, e)
+            anns, used, last_err = None, None, None
+            # PER-TICKER ISOLATION: try each candidate symbol; catch EVERY exception so one bad
+            # symbol (404 -> HttpError, or 401 -> MunsError) never discards the good tickers.
+            for sym in tk.candidates(oem, meta):
+                try:
+                    anns = client.corp_announcements(sym, froms, tos)
+                    used = sym
+                    break
+                except Exception as e:  # noqa: BLE001 — isolate every per-ticker failure
+                    last_err = e
+                    self.log.info("  %s: symbol '%s' did not resolve (%s) — trying next",
+                                  oem, sym, redact_text(str(e))[:140])
+            if anns is None:
+                tk.record(oem, None, False, via="corp_announcements", note=redact_text(str(last_err)))
+                coverage[oem] = {"resolved": None, "matches": 0}
+                self.log.warning("  %s: no candidate symbol resolved — skipping this ticker", oem)
                 continue
-            for ann in _as_list(anns):
+            tk.record(oem, used, True, via="corp_announcements")
+
+            matched = 0
+            for ann in _flatten_announcements(anns):
                 subject = _first(ann, ["subject", "headline", "title", "desc", "descriptor"], "")
                 if not any(k in str(subject).lower() for k in keywords):
                     continue
                 pdf_url = _first(ann, ["attachment", "pdf", "fileUrl", "file_url", "link", "url", "attachmentUrl"])
                 if not pdf_url:
-                    self.log.info("  %s: matching announcement has no PDF url — skipping", symbol)
                     continue
-                items.append({"oem": oem, "symbol": symbol, "subject": subject,
+                matched += 1
+                items.append({"oem": oem, "symbol": used, "subject": subject,
                               "pdf_url": pdf_url, "category_hint": meta.get("category", []),
                               "ann_id": _first(ann, ["id", "announcementId", "nsdlId", "seqId"], pdf_url)})
-        self.log.info("Lane A: %d matching sales announcements across %d tickers", len(items), len(tickers))
-        return items or None
+            coverage[oem] = {"resolved": used, "matches": matched}
+
+        resolved = sum(1 for c in coverage.values() if c["resolved"])
+        self.log.info("Lane A: resolved %d/%d tickers; %d matching sales announcements",
+                      resolved, len(coverage), len(items))
+        return {"items": items, "coverage": coverage}
 
     def extract(self, raw, res):
         from lib import fetch as fetch_mod
         minc = min_confidence()
-        for item in raw:
+        items = raw.get("items", [])
+        coverage = raw.get("coverage", {})
+        res.stats["resolution"] = coverage
+        for oem, cov in coverage.items():
+            if not cov["resolved"]:
+                res.flag("ticker_unresolved", f"{oem}: no candidate symbol resolved on Muns")
+        for item in items:
             pdf = fetch_mod.download(item["pdf_url"])
             if not pdf:
                 res.flag("fetch_failed", f"{item['symbol']}: could not download {item['pdf_url']}")
@@ -177,6 +204,21 @@ def _as_list(obj):
             if isinstance(obj.get(k), list):
                 return obj[k]
     return []
+
+
+def _flatten_announcements(anns):
+    """
+    Muns returns announcements SOURCE-GROUPED, e.g. ``[{"source":"NSE","data":[...]}, ...]``.
+    Flatten each group's ``data`` into one list of announcement dicts. Also tolerates an
+    already-flat list, or a dict wrapping the list under a ``data``-style key.
+    """
+    out = []
+    for it in _as_list(anns):
+        if isinstance(it, dict) and isinstance(it.get("data"), list):
+            out.extend(it["data"])      # a {"source": .., "data": [...]} group
+        elif isinstance(it, dict):
+            out.append(it)              # already a flat announcement
+    return out
 
 
 def _first(d, keys, default=None):

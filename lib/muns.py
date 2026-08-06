@@ -43,15 +43,15 @@ class MunsClient:
         return {"Authorization": f"Bearer {self.token}"}
 
     # -- Corporate Announcements (BSE primary, NSE fallback) ---------------------------
-    def corp_announcements(self, ticker, from_date, to_date):
+    def corp_announcements(self, ticker, from_date, to_date, country="India"):
         """
-        from_date/to_date are ``YYYYMMDD`` strings. Returns the parsed JSON (list of
-        announcements, typically newest first) — shape is logged so it can be adjusted.
+        from_date/to_date are ``YYYYMMDD`` strings. ``country`` MUST be "India" (capital I) so
+        the yfinance-backed resolver picks the Indian listing. Returns the parsed JSON.
         """
         url = f"{DEVDE}/filings/corp/announcements/{ticker}"
         try:
             resp = http.get(url, headers=self._headers,
-                            params={"fromDate": from_date, "toDate": to_date},
+                            params={"fromDate": from_date, "toDate": to_date, "country": country},
                             accept="application/json",
                             label=f"muns.corp_announcements[{ticker}]")
         except http.AuthError as e:
@@ -76,9 +76,9 @@ class MunsClient:
         return _json(resp)
 
     # -- Filings — Domestic ------------------------------------------------------------
-    def domestic_filings(self, ticker, form="all"):
+    def domestic_filings(self, ticker, form="all", country="India"):
         url = f"{DEVDE}/filings/domestic"
-        body = {"ticker": ticker, "form": form}
+        body = {"ticker": ticker, "form": form, "country": country}
         try:
             resp = http.post(url, headers=self._headers, json_body=body,
                              accept="application/json", label=f"muns.domestic[{ticker},{form}]")
@@ -87,20 +87,21 @@ class MunsClient:
         return _json(resp)
 
     # -- Financial Tables (markdown) ---------------------------------------------------
-    def financial_tables_markdown(self, ticker, form="consolidated"):
+    def financial_tables_markdown(self, ticker, form="consolidated", country="India"):
         url = f"{DEVDE}/filings/financial_tables/markdown/{ticker}"
         try:
-            resp = http.get(url, headers=self._headers, params={"form": form},
+            resp = http.get(url, headers=self._headers, params={"form": form, "country": country},
                             accept="text/plain", label=f"muns.financial_tables[{ticker},{form}]")
         except http.AuthError as e:
             raise MunsError(f"401 from Muns — MUNS_TOKEN looks expired/invalid ({e.url}).") from e
         return resp.text
 
     # -- Get Financials (JSON) ---------------------------------------------------------
-    def get_financials(self, ticker, period="quarterly"):
+    def get_financials(self, ticker, period="quarterly", country="India"):
         url = f"{FASTAPI}/financials/{ticker}"
         try:
-            resp = http.post(url, headers=self._headers, json_body={"period": period},
+            resp = http.post(url, headers=self._headers,
+                             json_body={"period": period, "country": country},
                              accept="application/json", label=f"muns.get_financials[{ticker},{period}]")
         except http.AuthError as e:
             raise MunsError(f"401 from Muns — MUNS_TOKEN looks expired/invalid ({e.url}).") from e

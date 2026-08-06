@@ -51,6 +51,15 @@ jobs:
           restore-keys: |
             oem-extract-cache-
 
+      # One-shot ticker resolve-check (manual runs only) — logs per-ticker Muns coverage and
+      # pre-populates data/out/ticker_resolution.json so the pipeline step skips re-probing.
+      - name: Resolve tickers (coverage check)
+        if: github.event_name == 'workflow_dispatch'
+        continue-on-error: true
+        env:
+          MUNS_TOKEN: ${{ secrets.MUNS_TOKEN }}
+        run: python scripts/resolve_tickers.py
+
       - name: Run pipeline (fetch → extract → store → audit → build)
         env:
           MUNS_TOKEN: ${{ secrets.MUNS_TOKEN }}

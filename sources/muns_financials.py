@@ -15,7 +15,9 @@ from __future__ import annotations
 
 from lib import model as M
 from lib import muns as muns_mod
+from lib import tickers as tk
 from lib.extract import ExtractionUnavailable
+from lib.logging_util import redact_text
 from sources._common import get_extractor
 from sources.base import Adapter, register
 
@@ -55,31 +57,49 @@ class MunsFinancialsAdapter(Adapter):
         form = self.cfg.get("form", "consolidated")
         per = self.cfg.get("period", "quarterly")
         out = {}
+        coverage = {}
         for oem, meta in tickers.items():
-            symbol = meta.get("nse")
-            if not symbol:
+            if not meta.get("nse") and not meta.get("yf"):
                 continue
-            entry = {"oem": oem, "nse": symbol}
+            # PER-TICKER ISOLATION + resolution: try candidate symbols, catch EVERY exception so
+            # one bad symbol (404 -> HttpError) never aborts the lane and loses the good tickers.
+            md, used, last_err = None, None, None
+            for sym in tk.candidates(oem, meta):
+                try:
+                    md = client.financial_tables_markdown(sym, form)
+                    used = sym
+                    break
+                except Exception as e:  # noqa: BLE001
+                    last_err = e
+                    self.log.info("  %s: symbol '%s' did not resolve (%s) — trying next",
+                                  oem, sym, redact_text(str(e))[:140])
+            if used is None:
+                tk.record(oem, None, False, via="financial_tables", note=redact_text(str(last_err)))
+                coverage[oem] = None
+                continue
+            tk.record(oem, used, True, via="financial_tables")
+            entry = {"oem": oem, "symbol": used, "tables_markdown": md, "financials": None}
             try:
-                entry["tables_markdown"] = client.financial_tables_markdown(symbol, form)
-            except muns_mod.MunsError as e:
-                self.log.warning("financial_tables failed for %s: %s", symbol, e)
-                entry["tables_markdown"] = None
-            try:
-                entry["financials"] = client.get_financials(symbol, per)
-            except muns_mod.MunsError as e:
-                self.log.warning("get_financials failed for %s: %s", symbol, e)
-                entry["financials"] = None
-            if entry["tables_markdown"] or entry["financials"]:
-                out[symbol] = entry
-        return out or None
+                entry["financials"] = client.get_financials(used, per)
+            except Exception as e:  # noqa: BLE001
+                self.log.info("  %s: get_financials failed (%s)", oem, redact_text(str(e))[:140])
+            out[used] = entry
+            coverage[oem] = used
+
+        resolved = sum(1 for v in coverage.values() if v)
+        self.log.info("Lane D: resolved %d/%d tickers with financials", resolved, len(coverage))
+        return {"entries": out, "coverage": coverage}
 
     def extract(self, raw, res):
         overlay = {"source": M.SRC_FINANCIALS,
                    "note": "Revenue / margin / valuation overlay by ticker (separate lane).",
                    "tickers": {}}
+        res.stats["resolution"] = raw.get("coverage", {})
+        for oem, sym in raw.get("coverage", {}).items():
+            if not sym:
+                res.flag("ticker_unresolved", f"{oem}: no candidate symbol resolved on Muns")
         extractor = get_extractor()
-        for symbol, entry in raw.items():
+        for symbol, entry in raw.get("entries", {}).items():
             self.save_raw("financials", f"{symbol}.md",
                           entry.get("tables_markdown") or "", res)
             headline = None
@@ -99,4 +119,4 @@ class MunsFinancialsAdapter(Adapter):
             }
         res.overlay_name = "_financials.json"
         res.overlay = overlay
-        res.stats = {"tickers": len(overlay["tickers"])}
+        res.stats["tickers"] = len(overlay["tickers"])

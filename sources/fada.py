@@ -65,24 +65,32 @@ class FadaAdapter(Adapter):
         press_urls = self.cfg.get("press_urls") or ([self.cfg["press_url"]] if self.cfg.get("press_url") else [])
         if not press_urls:
             return None
-        pdf_url = None
+        # Collect candidate PDFs across the press page(s), the monthly "Vehicle Retail Data" release
+        # FIRST. FADA's page links many unrelated PDFs (event notices, an election-form banner) — and
+        # its only literal *.pdf banner is a decorative one that 404s — so never just take the first
+        # .pdf. The page lists newest at the top, so document order within a group = newest first.
+        candidates = []
         for purl in press_urls:
             page = fetch_mod.fetch_page(purl)
             if not page:
                 continue
-            pdfs = page.pdf_links()
-            if pdfs:
-                pdf_url = fetch_mod.absolutize(purl, pdfs[0])  # newest first, best-effort
-                break
-        if not pdf_url:
+            for rel in _prioritize_release_pdfs(page.pdf_links()):
+                url = fetch_mod.absolutize(purl, rel)
+                if url not in candidates:
+                    candidates.append(url)
+        if not candidates:
             self.log.warning("no PDF links on FADA press page(s) — scrape/URL may need tuning")
             return None
-        data = fetch_mod.download(pdf_url)
-        if not data:
-            return None
-        fname = pdf_url.rsplit("/", 1)[-1].split("?")[0] or "fada_release.pdf"
-        _, sha = self.save_raw("release", fname, data)
-        return {"pdf": data, "filename": fname, "url": pdf_url, "sha": sha}
+        # Try candidates in priority order; keep the first that actually downloads (stale links 404).
+        for pdf_url in candidates[:5]:
+            data = fetch_mod.download(pdf_url)
+            if data:
+                fname = pdf_url.rsplit("/", 1)[-1].split("?")[0] or "fada_release.pdf"
+                _, sha = self.save_raw("release", fname, data)
+                self.log.info("FADA release PDF: %s (%d bytes)", fname, len(data))
+                return {"pdf": data, "filename": fname, "url": pdf_url, "sha": sha}
+        self.log.warning("FADA: %d candidate PDF(s) found but none downloaded", len(candidates))
+        return None
 
     def extract(self, raw, res):
         minc = min_confidence()
@@ -116,3 +124,19 @@ class FadaAdapter(Adapter):
                 oem_raw=oem_raw or oem, provisional=True, confidence=conf,
                 source_ref=f"{raw['url']}#sha={raw['sha'][:12]}"))
         res.stats = {"period": period, "rows": len(data.get("rows", []))}
+
+
+def _prioritize_release_pdfs(pdfs):
+    """Order FADA's PDF links so the monthly *Vehicle Retail Data* release comes first, then any
+    other retail-mentioning PDF, then everything else (event notices, forms). The page lists
+    newest at the top, so document order within each group is newest-first."""
+    monthly, retail, other = [], [], []
+    for p in pdfs:
+        s = str(p).lower()
+        if re.search(r"vehicle\s*retail\s*data", s):
+            monthly.append(p)
+        elif "retail" in s:
+            retail.append(p)
+        else:
+            other.append(p)
+    return monthly + retail + other

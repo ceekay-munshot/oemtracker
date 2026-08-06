@@ -36,7 +36,7 @@
     "via": "financial_tables"
   },
   "Force Motors": {
-    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/FORCEMOTORS.BO: {\"statusCode\":404,\"timestamp\":\"2026-08-06T13:57:03.045Z\",\"path\":\"/filings/",
+    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/FORCEMOTORS.BO: {\"statusCode\":404,\"timestamp\":\"2026-08-06T15:17:47.265Z\",\"path\":\"/filings/",
     "ok": false,
     "symbol": null,
     "via": "financial_tables"
@@ -78,7 +78,7 @@
     "via": "financial_tables"
   },
   "SML Isuzu": {
-    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/SMLISUZU.BO: {\"statusCode\":404,\"timestamp\":\"2026-08-06T13:57:00.090Z\",\"path\":\"/filings/fin",
+    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/SMLISUZU.BO: {\"statusCode\":404,\"timestamp\":\"2026-08-06T15:17:44.184Z\",\"path\":\"/filings/fin",
     "ok": false,
     "symbol": null,
     "via": "financial_tables"
@@ -93,6 +93,18 @@
     "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/TATAMOTORS.BO: {\"statusCode\":404,\"timestamp\":\"2026-08-06T13:47:56.382Z\",\"path\":\"/filings/f",
     "ok": false,
     "symbol": null,
+    "via": "financial_tables"
+  },
+  "Tata Motors CV": {
+    "note": "",
+    "ok": true,
+    "symbol": "TMCV",
+    "via": "financial_tables"
+  },
+  "Tata Motors PV": {
+    "note": "",
+    "ok": true,
+    "symbol": "TMPV",
     "via": "financial_tables"
   }
 }

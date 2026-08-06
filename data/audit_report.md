@@ -1,8 +1,8 @@
 # Auto OEM Trends — Audit Report
 
-- Run: `2026-08-06T13:42:04.378634+00:00`
+- Run: `2026-08-06T15:05:30.311830+00:00`
 - Publish gate: ✅ clean — safe to commit
-- LLM tally: 27 calls, ~$0.726 (181716+12030 tok)
+- LLM tally: 11 calls, ~$0.480 (130301+5931 tok)
 
 ## Store
 - `Company(BSE/NSE)`: 56 records, 56 unique keys
@@ -14,20 +14,18 @@
     - company_announcements: ASHOKLEY mhcv/Exports=1220 conf=0.50
     - company_announcements: ASHOKLEY lcv/Exports=390 conf=0.50
     - company_announcements: ATULAUTO 3w/Exports=585 conf=0.50
-- **ticker_unresolved**: 6
-    - company_announcements: Tata Motors: no candidate symbol resolved on Muns
+- **ticker_unresolved**: 4
     - company_announcements: SML Isuzu: no candidate symbol resolved on Muns
     - company_announcements: Force Motors: no candidate symbol resolved on Muns
-    - financials: Tata Motors: no candidate symbol resolved on Muns
     - financials: SML Isuzu: no candidate symbol resolved on Muns
     - financials: Force Motors: no candidate symbol resolved on Muns
 
 ## Lane status
 - `fada` (lane C): skipped — no source data available (fetch returned nothing) · records=0 flags=0
 - `manual` (lane Manual): skipped — no source data available (fetch returned nothing) · records=0 flags=0
-- `company_announcements` (lane A): ok · records=53 flags=6
+- `company_announcements` (lane A): ok · records=53 flags=5
 - `concalls` (lane E): skipped — no source data available (fetch returned nothing) · records=0 flags=0
-- `financials` (lane D): ok · records=0 flags=3
+- `financials` (lane D): ok · records=0 flags=2
 - `siam` (lane B): skipped — no source data available (fetch returned nothing) · records=0 flags=0
 
 ## Idempotency

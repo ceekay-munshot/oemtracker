@@ -30,6 +30,10 @@ log = get_logger("audit")
 # Flag types that BLOCK a clean publish (open a PR instead).
 HARD_FLAG_TYPES = {"arithmetic", "yoy_mom", "dedup", "segment_sum"}
 
+# Provisional flash lanes: their anomalies are review-only (sidecar overlay, revised by the
+# backbone later), so a swing here never blocks publishing the core dashboard.
+FLASH_SOURCES = {M.SRC_COMPANY}
+
 # Plausibility thresholds.
 MOM_LIMIT = 0.60   # ±60% month-on-month for a major OEM
 YOY_LIMIT = 1.00   # ±100% year-on-year
@@ -170,16 +174,24 @@ def audit(store, results, *, run_ts="", store_stats=None, tally=None):
             continue
         pm = series.get(_prev_month(r["period"]))
         py = series.get(_prev_year(r["period"]))
+        # A swing on the provisional FLASH lane (Company) is review-only, not a hard block: that
+        # data is explicitly provisional, feeds only a sidecar overlay (not the core dashboard
+        # charts), and gets confirmed/revised by the SIAM backbone later. Swings on the backbone
+        # itself stay HARD. (Arithmetic is validated + dropped upstream, so it stays hard too.)
+        ftype = "yoy_mom_review" if r["source"] in FLASH_SOURCES else "yoy_mom"
         # only sanity-check meaningful volumes
         if pm and abs(pm) >= MAJOR_TTM / 12 and abs(cur - pm) / abs(pm) > MOM_LIMIT:
-            rep.add_flag("yoy_mom",
+            rep.add_flag(ftype,
                          f"{r['source']} {r['category']}/{r['oem']} {r['period']}: "
                          f"MoM {pm}->{cur} ({(cur-pm)/pm*100:+.0f}%)")
         if py and abs(py) >= MAJOR_TTM and abs(cur - py) / abs(py) > YOY_LIMIT:
-            rep.add_flag("yoy_mom",
+            rep.add_flag(ftype,
                          f"{r['source']} {r['category']}/{r['oem']} {r['period']}: "
                          f"YoY {py}->{cur} ({(cur-py)/py*100:+.0f}%)")
-    swing_lines.append(f"{len(rep.flags.get('yoy_mom', []))} implausible MoM/YoY swings flagged")
+    n_swings = len(rep.flags.get("yoy_mom", [])) + len(rep.flags.get("yoy_mom_review", []))
+    swing_lines.append(f"{n_swings} implausible MoM/YoY swings flagged "
+                       f"({len(rep.flags.get('yoy_mom', []))} hard / "
+                       f"{len(rep.flags.get('yoy_mom_review', []))} flash-review)")
     rep.section("YoY / MoM sanity", swing_lines)
 
     # ---- 6. cross-source: Company vs SIAM OEM total, same month (report only) ---------

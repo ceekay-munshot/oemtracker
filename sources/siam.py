@@ -81,19 +81,23 @@ class SiamAdapter(Adapter):
             if pdf:
                 return pdf
 
-        press_url = self.cfg.get("press_url")
-        if not press_url:
-            self.log.warning("no press_url configured for SIAM — cannot fetch public release")
+        press_urls = self.cfg.get("press_urls") or ([self.cfg["press_url"]] if self.cfg.get("press_url") else [])
+        if not press_urls:
+            self.log.warning("no press_urls configured for SIAM — cannot fetch public release")
             return None
-        page = fetch_mod.fetch_page(press_url)
-        if not page:
-            self.log.warning("SIAM press page fetch failed (no scraping provider available)")
+        pdf_url = None
+        for purl in press_urls:
+            page = fetch_mod.fetch_page(purl)
+            if not page:
+                continue
+            pdfs = page.pdf_links()
+            if pdfs:
+                pdf_url = fetch_mod.absolutize(purl, pdfs[0])  # newest first, best-effort
+                break
+        if not pdf_url:
+            self.log.warning("no PDF links found on SIAM press page(s) — public page is HTML-only; "
+                             "per-OEM detail is member-only (set SIAM_USERNAME/PASSWORD)")
             return None
-        pdfs = page.pdf_links()
-        if not pdfs:
-            self.log.warning("no PDF links found on SIAM press page — schema/scrape may need tuning")
-            return None
-        pdf_url = fetch_mod.absolutize(press_url, pdfs[0])  # newest first, best-effort
         self.log.info("SIAM: chosen release PDF %s", pdf_url)
         data = fetch_mod.download(pdf_url)
         if not data:

@@ -30,9 +30,13 @@ lanes:
     lane: B
     store_source: "SIAM"
     cadence: "monthly (weeks after month-end)"
-    # Public landing/press-release page(s); the adapter discovers the latest PDF from here.
-    press_url: "https://www.siam.in/pressrelease.aspx"
-    # Member-only per-OEM detail: only used if credentials are present (Playwright login path).
+    # Public landing/press-release page(s); the adapter discovers the latest PDF from here and
+    # tries each in order. NOTE: the working URL is press-release.aspx (WITH a hyphen — the
+    # old pressrelease.aspx 404s). The public page carries only industry-total figures in HTML;
+    # per-OEM SIAM detail is member-only, so the public path finds no PDF and skips gracefully
+    # until SIAM_USERNAME/PASSWORD enable the Playwright login path.
+    press_urls:
+      - "https://www.siam.in/press-release.aspx"
     member_login_url: "https://www.siam.in/login.aspx"
     member_only_detail: true
     requires_secret: null   # public path needs no Muns token; scraping key optional
@@ -43,7 +47,10 @@ lanes:
     lane: C
     store_source: "FADA"
     cadence: "monthly (~mid-month)"
-    press_url: "https://fada.in/press-release.php"
+    # Working listing page that links the monthly Vehicle Retail Data PDFs (newest first).
+    # The old press-release.php 404s; press-release-list.php is the current path.
+    press_urls:
+      - "https://www.fada.in/press-release-list.php"
     metric: "Retail"
     requires_secret: null
 

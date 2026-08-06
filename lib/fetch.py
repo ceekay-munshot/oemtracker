@@ -16,11 +16,23 @@ from __future__ import annotations
 import re
 import urllib.parse
 
+import requests
+
 from lib import http_util as http
 from lib.config import secret, sources_config
 from lib.logging_util import get_logger, redact_text
 
 log = get_logger("fetch")
+
+# Many sources (notably NSE archives) reject non-browser clients — the request just hangs until
+# it read-times-out. Send browser-like headers so downloads actually return.
+BROWSER_HEADERS = {
+    "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                   "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"),
+    "Accept": "application/pdf,application/octet-stream,text/html,*/*",
+    "Accept-Language": "en-US,en;q=0.9",
+}
+_nse_session = None
 
 FIRECRAWL_URL = "https://api.firecrawl.dev/v1/scrape"
 SCRAPEDO_URL = "https://api.scrape.do"
@@ -116,13 +128,73 @@ def fetch_page(url, providers=None):
     return None
 
 
-def download(url, timeout=120):
-    """Download raw bytes (e.g. a PDF) directly. Returns bytes or None on failure."""
+def _nse_download(url, timeout, attempts=2):
+    """
+    NSE (nseindia.com / nsearchives) blocks non-browser clients and needs cookies from the main
+    site. Prime a session once, then fetch the archive with a browser UA + Referer. Kept fast
+    (short timeout, few attempts) so a still-blocked host fails in seconds, not minutes.
+    """
+    global _nse_session
+    if _nse_session is None:
+        s = requests.Session()
+        s.headers.update(BROWSER_HEADERS)
+        try:
+            s.get("https://www.nseindia.com/", timeout=15)  # sets the cookies NSE requires
+        except requests.RequestException as e:
+            log.info("NSE cookie priming failed (%s) — proceeding without", redact_text(str(e)))
+        _nse_session = s
+    last = None
+    for i in range(attempts):
+        try:
+            resp = _nse_session.get(url, headers={"Referer": "https://www.nseindia.com/"},
+                                    timeout=timeout)
+            resp.raise_for_status()
+            return resp.content
+        except requests.RequestException as e:
+            last = e
+            log.info("  NSE download attempt %d/%d failed (%s)", i + 1, attempts,
+                     redact_text(str(e))[:120])
+    raise last
+
+
+def _scrapedo_download(url, timeout):
+    """Proxy fallback: fetch bytes via Scrape.do (rotating IPs) when a host bot-blocks the runner."""
+    key = secret("SCRAPEDO_API_KEY")
+    if not key:
+        return None
+    resp = http.get(SCRAPEDO_URL, params={"token": key, "url": url}, timeout=timeout,
+                    max_retries=1, accept="*/*", label="scrapedo.download")
+    return resp.content
+
+
+def download(url, timeout=45, max_retries=1):
+    """
+    Download raw bytes (e.g. a PDF). Sends browser-like headers because sources such as NSE
+    archives reject non-browser clients (the connection hangs until read-timeout). Short timeout
+    + few retries so a blocked host fails FAST instead of grinding through minutes of retries.
+    If the direct fetch fails (or a host bot-blocks the runner IP), falls back to the Scrape.do
+    proxy. Returns bytes, or None on failure (the caller flags it and continues).
+    """
+    host = (urllib.parse.urlparse(url).hostname or "").lower()
     try:
-        resp = http.get(url, timeout=timeout, accept="*/*", label="download")
+        if host.endswith("nseindia.com"):
+            log.info("→ download[nse] %s", redact_text(url))
+            data = _nse_download(url, timeout)
+            log.info("← download[nse] %d bytes", len(data or b""))
+            return data
+        resp = http.get(url, headers=dict(BROWSER_HEADERS), timeout=timeout,
+                        max_retries=max_retries, label="download")
         return resp.content
     except Exception as e:  # noqa: BLE001
-        log.error("download failed for %s: %s", redact_text(url), redact_text(str(e)))
+        log.warning("direct download failed for %s: %s — trying Scrape.do proxy",
+                    redact_text(url), redact_text(str(e))[:120])
+    try:
+        data = _scrapedo_download(url, timeout)
+        if data:
+            log.info("← download[scrapedo] %d bytes", len(data))
+        return data
+    except Exception as e:  # noqa: BLE001
+        log.warning("proxy download also failed for %s: %s", redact_text(url), redact_text(str(e))[:120])
         return None
 
 

@@ -19,7 +19,9 @@ from lib import fetch as fetch_mod
 from lib import model as M
 from lib import muns as muns_mod
 from lib import ocr as ocr_mod
+from lib import tickers as tk
 from lib.extract import ExtractionUnavailable
+from lib.logging_util import redact_text
 from sources._common import get_extractor
 from sources.base import Adapter, register
 
@@ -61,20 +63,22 @@ class MunsConcallsAdapter(Adapter):
         start = end - timedelta(days=lookback)
         out = []
         for oem, meta in tickers.items():
-            symbol = meta.get("nse")
-            if not symbol:
-                continue
-            try:
-                items = client.combined_filings(symbol, ["concalls"],
-                                                start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
-            except muns_mod.MunsError as e:
-                self.log.warning("concalls fetch failed for %s: %s", symbol, e)
+            items = None
+            for sym in tk.candidates(oem, meta):
+                try:
+                    items = client.combined_filings(sym, ["concalls"],
+                                                    start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
+                    break
+                except Exception as e:  # noqa: BLE001 — isolate every per-ticker failure
+                    self.log.info("  %s: symbol '%s' concalls failed (%s) — trying next",
+                                  oem, sym, redact_text(str(e))[:140])
+            if items is None:
                 continue
             items = items if isinstance(items, list) else (items.get("data") if isinstance(items, dict) else [])
             if not items:
                 continue
             latest = items[0]  # newest first
-            out.append({"oem": oem, "symbol": symbol, "item": latest})
+            out.append({"oem": oem, "symbol": meta.get("nse") or oem, "item": latest})
         return out or None
 
     def extract(self, raw, res):

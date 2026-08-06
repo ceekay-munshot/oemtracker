@@ -62,18 +62,21 @@ class FadaAdapter(Adapter):
     requires_secret = None
 
     def fetch(self, period):
-        press_url = self.cfg.get("press_url")
-        if not press_url:
+        press_urls = self.cfg.get("press_urls") or ([self.cfg["press_url"]] if self.cfg.get("press_url") else [])
+        if not press_urls:
             return None
-        page = fetch_mod.fetch_page(press_url)
-        if not page:
-            self.log.warning("FADA press page fetch failed (no scraping provider available)")
+        pdf_url = None
+        for purl in press_urls:
+            page = fetch_mod.fetch_page(purl)
+            if not page:
+                continue
+            pdfs = page.pdf_links()
+            if pdfs:
+                pdf_url = fetch_mod.absolutize(purl, pdfs[0])  # newest first, best-effort
+                break
+        if not pdf_url:
+            self.log.warning("no PDF links on FADA press page(s) — scrape/URL may need tuning")
             return None
-        pdfs = page.pdf_links()
-        if not pdfs:
-            self.log.warning("no PDF links on FADA press page — schema/scrape may need tuning")
-            return None
-        pdf_url = fetch_mod.absolutize(press_url, pdfs[0])
         data = fetch_mod.download(pdf_url)
         if not data:
             return None

@@ -1,5 +1,9 @@
 {
   "sources": {
+    "Company(BSE/NSE)": {
+      "records": 54,
+      "latest_keys": 54
+    },
     "Internal-DB(historical)": {
       "records": 15915,
       "latest_keys": 15915

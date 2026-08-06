@@ -36,7 +36,7 @@
     "via": "financial_tables"
   },
   "Force Motors": {
-    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/FORCEMOTORS.BO: {\"statusCode\":404,\"timestamp\":\"2026-08-06T13:35:54.279Z\",\"path\":\"/filings/",
+    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/FORCEMOTORS.BO: {\"statusCode\":404,\"timestamp\":\"2026-08-06T13:57:03.045Z\",\"path\":\"/filings/",
     "ok": false,
     "symbol": null,
     "via": "financial_tables"
@@ -63,7 +63,7 @@
     "note": "",
     "ok": true,
     "symbol": "MARUTI",
-    "via": "corp_announcements"
+    "via": "financial_tables"
   },
   "Ola Electric": {
     "note": "",
@@ -78,7 +78,7 @@
     "via": "financial_tables"
   },
   "SML Isuzu": {
-    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/SMLISUZU.BO: {\"statusCode\":404,\"timestamp\":\"2026-08-06T13:35:51.909Z\",\"path\":\"/filings/fin",
+    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/SMLISUZU.BO: {\"statusCode\":404,\"timestamp\":\"2026-08-06T13:57:00.090Z\",\"path\":\"/filings/fin",
     "ok": false,
     "symbol": null,
     "via": "financial_tables"
@@ -90,7 +90,7 @@
     "via": "financial_tables"
   },
   "Tata Motors": {
-    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/TATAMOTORS.BO: {\"statusCode\":404,\"timestamp\":\"2026-08-06T13:20:47.654Z\",\"path\":\"/filings/f",
+    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/TATAMOTORS.BO: {\"statusCode\":404,\"timestamp\":\"2026-08-06T13:47:56.382Z\",\"path\":\"/filings/f",
     "ok": false,
     "symbol": null,
     "via": "financial_tables"

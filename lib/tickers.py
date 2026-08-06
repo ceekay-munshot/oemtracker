@@ -31,10 +31,15 @@ _cache = None  # {oem: {"symbol": str|None, "via": str, "ok": bool, "note": str}
 
 
 def symbol_candidates(meta):
-    """Candidate symbols to try, in order: explicit yf override, bare NSE, then '<NSE>.NS'."""
+    """
+    Candidate symbols to try, in order: explicit ``yf`` override, bare NSE symbol, the yfinance
+    NSE form ``<SYM>.NS``, then the BSE form ``<SYM>.BO`` (some names resolve only on BSE).
+    """
     nse = meta.get("nse")
     out = []
-    for c in (meta.get("yf"), nse, f"{nse}.NS" if nse else None):
+    for c in (meta.get("yf"), nse,
+              f"{nse}.NS" if nse else None,
+              f"{nse}.BO" if nse else None):
         if c and c not in out:
             out.append(c)
     return out

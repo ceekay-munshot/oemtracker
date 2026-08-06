@@ -17,6 +17,7 @@ This lane never blends into the SIAM tables — it lives in its own source (gold
 
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import date, timedelta
 
 from lib import model as M
@@ -61,12 +62,15 @@ EXTRACT_SCHEMA = {
 
 INSTRUCTION = (
     "This is an Indian listed automaker's monthly sales/production disclosure filed with the "
-    "stock exchange. Extract every vehicle-sales figure it reports. Map each to a category "
-    "(pv, 2w, 3w, mhcv, lcv, tractors, cv) and a metric (Domestic, Exports, Total, Production). "
-    "Use 'segment' for any finer split the filing gives (e.g. UV, Scooter); leave it blank if "
-    "none. Set 'period' to the sales MONTH as YYYY-MM. Give each figure a confidence in [0,1] "
-    "and the exact source line in 'source_label'. Do not compute or infer values that are not "
-    "printed; lower confidence instead.")
+    "stock exchange. Extract ONLY the headline MONTHLY TOTAL for each vehicle category "
+    "(pv, 2w, 3w, mhcv, lcv, tractors, cv): the category's Domestic sales, Exports and Total "
+    "sales. Do NOT extract sub-segment / model-wise rows (Scooter, UV, individual models) — "
+    "leave 'segment' blank and give one row per (category, metric). Metrics: Domestic, Exports, "
+    "Total (and Production ONLY if this is a production report). Total = Domestic + Exports; if "
+    "the printed figures don't add up, extract what is printed but LOWER the confidence. Set "
+    "'period' to the sales MONTH as YYYY-MM (if several months are shown, use the latest). Never "
+    "infer or compute a figure that is not printed. Give each figure a confidence in [0,1] and "
+    "the exact source line in 'source_label'.")
 
 
 @register
@@ -130,7 +134,6 @@ class MunsAnnouncementsAdapter(Adapter):
         return {"items": items, "coverage": coverage}
 
     def extract(self, raw, res):
-        from lib import fetch as fetch_mod
         minc = min_confidence()
         items = raw.get("items", [])
         coverage = raw.get("coverage", {})
@@ -138,6 +141,26 @@ class MunsAnnouncementsAdapter(Adapter):
         for oem, cov in coverage.items():
             if not cov["resolved"]:
                 res.flag("ticker_unresolved", f"{oem}: no candidate symbol resolved on Muns")
+
+        # Group announcements by OEM so we can dedupe conflicting filings for the same OEM/month.
+        by_oem = defaultdict(list)
+        for item in items:
+            by_oem[item["oem"]].append(item)
+
+        cap = int(self.cfg.get("max_announcements_per_ticker", 3))
+        for oem, its in by_oem.items():
+            # Highest-authority filings first (a sales press release beats a production intimation),
+            # so on a conflict the more authoritative value is the one we keep.
+            its.sort(key=lambda it: _authority(it.get("subject", "")), reverse=True)
+            self._extract_one_oem(oem, its[:cap], res, minc)
+
+    def _extract_one_oem(self, oem, items, res, minc):
+        """Extract, DEDUPE (one value per category/metric/month, highest-authority wins), then
+        VALIDATE arithmetic and store only the rows that reconcile."""
+        from lib import fetch as fetch_mod
+
+        acc = {}          # (category, metric, period) -> {value, conf, oem_raw, source_ref}
+        company_name = None
         for item in items:
             pdf = fetch_mod.download(item["pdf_url"])
             if not pdf:
@@ -146,52 +169,67 @@ class MunsAnnouncementsAdapter(Adapter):
             fname = f"{item['symbol']}_{item['ann_id']}".replace("/", "_")[:80] + ".pdf"
             _, sha = self.save_raw("announcements", fname, pdf, res)
             data, meta = pdf_to_json(pdf, fname, EXTRACT_SCHEMA, INSTRUCTION,
-                                     hint=f"Company: {item['oem']}. Likely categories: {item['category_hint']}.")
+                                     hint=f"Company: {oem}. Likely categories: {item['category_hint']}.")
             if data is None:
                 res.flag("extract_failed", f"{item['symbol']}: {meta}")
                 continue
-            self._rows_to_records(item, data, meta, sha, res, minc)
+            period = _month(data.get("period"))
+            if not period:
+                res.flag("bad_period", f"{item['symbol']}: could not parse period '{data.get('period')}'")
+                continue
+            company_name = company_name or data.get("company") or oem
+            for row in data.get("rows", []):
+                seg = (row.get("segment") or "").strip().lower()
+                if seg not in ("", "total", "__all__"):
+                    continue  # store only category-level totals — sub-segments are noise here
+                cat = (row.get("category") or "").lower()
+                if cat not in VALID_CATEGORIES:
+                    continue
+                conf = float(row.get("confidence", 0))
+                if conf < minc:
+                    res.flag("low_confidence",
+                             f"{item['symbol']} {cat}/{row.get('metric')}={row.get('value')} conf={conf:.2f}")
+                    continue
+                key = (cat, row.get("metric"), period)
+                if key not in acc:  # first (highest-authority) value wins
+                    acc[key] = {"value": row.get("value"), "conf": conf,
+                                "oem_raw": data.get("company") or oem,
+                                "source_ref": f"{item['pdf_url']}#sha={sha[:12]}"}
 
-    def _rows_to_records(self, item, data, meta, sha, res, minc):
-        period = _month(data.get("period"))
-        if not period:
-            res.flag("bad_period", f"{item['symbol']}: could not parse period '{data.get('period')}'")
+        if not acc:
             return
-        oem_name, mapped = canonical(data.get("company") or item["oem"])
+        oem_name, mapped = canonical(company_name or oem)
         if not mapped:
-            res.flag("unmapped_oem", f"{item['symbol']}: '{data.get('company')}' not in alias map")
+            res.flag("unmapped_oem", f"{oem}: '{company_name}' not in alias map (kept, not dropped)")
 
-        # collect for arithmetic validation per category
-        by_cat = {}
-        for row in data.get("rows", []):
-            cat = (row.get("category") or "").lower()
-            if cat not in VALID_CATEGORIES:
+        # VALIDATE-BEFORE-STORE: per (category, period), require domestic+export≈total. Drop the
+        # whole category/month if it doesn't reconcile, so garbled extractions never enter the store.
+        dropped = set()
+        cats = defaultdict(dict)  # (cat, period) -> {metric: key}
+        for key in acc:
+            cat, metric, period = key
+            cats[(cat, period)][metric] = key
+        for (cat, period), metrics in cats.items():
+            d = acc[metrics["Domestic"]]["value"] if "Domestic" in metrics else None
+            e = acc[metrics["Exports"]]["value"] if "Exports" in metrics else None
+            t = acc[metrics["Total"]]["value"] if "Total" in metrics else None
+            if d is not None and e is not None and t is not None:
+                ok, detail = check_domestic_export_total(d, e, t)
+                if not ok:
+                    res.flag("arithmetic_dropped",
+                             f"{oem} {cat} {period}: {detail} — dropped, not stored")
+                    dropped.update(metrics.values())
+
+        stored = 0
+        for key, v in acc.items():
+            if key in dropped:
                 continue
-            conf = float(row.get("confidence", 0))
-            if conf < minc:
-                res.flag("low_confidence",
-                         f"{item['symbol']} {cat}/{row.get('metric')}={row.get('value')} conf={conf:.2f}",
-                         value=row.get("value"))
-                continue
-            metric = row.get("metric")
-            val = row.get("value")
-            seg = row.get("segment") or M.SEG_ALL
-            # Collect the category (__all__) total for each metric regardless of row order — a
-            # segment-level row appearing before the total must not null out the total.
-            if seg == M.SEG_ALL:
-                by_cat.setdefault(cat, {})[metric] = val
+            cat, metric, period = key
             res.records.append(make_record(
-                M.SRC_COMPANY, cat, seg, oem_name, metric, M.FREQ_M, period, val,
-                oem_raw=data.get("company") or item["oem"], provisional=True,
-                confidence=conf, source_ref=f"{item['pdf_url']}#sha={sha[:12]}"))
-
-        # arithmetic sanity: domestic+export≈total per category (report-only; keep lanes intact)
-        for cat, mm in by_cat.items():
-            ok, detail = check_domestic_export_total(mm.get("Domestic"), mm.get("Exports"), mm.get("Total"))
-            if not ok:
-                res.flag("arithmetic", f"{item['symbol']} {cat}: {detail}")
-
-        res.stats[item["symbol"]] = {"period": period, "rows": len(data.get("rows", []))}
+                M.SRC_COMPANY, cat, M.SEG_ALL, oem_name, metric, M.FREQ_M, period, v["value"],
+                oem_raw=v["oem_raw"], provisional=True, confidence=v["conf"], source_ref=v["source_ref"]))
+            stored += 1
+        res.stats[oem] = {"stored": stored, "dropped": len(dropped)}
 
 
 # ---- small tolerant parsers ----------------------------------------------------------
@@ -204,6 +242,21 @@ def _as_list(obj):
             if isinstance(obj.get(k), list):
                 return obj[k]
     return []
+
+
+def _authority(subject):
+    """Rank a filing for how authoritative its SALES totals are (higher = preferred on conflict).
+    A monthly-sales press release beats a production intimation beats a generic update."""
+    s = str(subject).lower()
+    if "sales" in s and ("press release" in s or "provisional" in s):
+        return 4
+    if "sales" in s:
+        return 3
+    if "business update" in s:
+        return 2
+    if "production" in s:
+        return 1
+    return 2
 
 
 def _flatten_announcements(anns):

@@ -69,12 +69,16 @@ def _record_key(rec):
     return tuple(rec[f] for f in KEY_FIELDS)
 
 
-def _signature(rec):
-    """Payload signature used to detect restatements. A change here => new revision."""
+def _norm_value(rec):
     val = rec.get("value")
     if isinstance(val, float) and val.is_integer():
         val = int(val)
-    return (val, bool(rec.get("provisional", False)))
+    return val
+
+
+def _signature(rec):
+    """Payload signature used to detect restatements. A change here => new revision."""
+    return (_norm_value(rec), bool(rec.get("provisional", False)))
 
 
 def make_record(source, category, segment, oem, metric, frequency, period, value,
@@ -214,6 +218,13 @@ class Store:
                     summary["added"] += 1
                 elif _signature(prev) == _signature(rec):
                     summary["skipped"] += 1
+                elif (_norm_value(prev) == _norm_value(rec)
+                      and not prev.get("provisional", False)
+                      and bool(rec.get("provisional", False))):
+                    # provisional is monotonic toward confirmed: once a backbone source has
+                    # confirmed a row (provisional=False), a same-value re-emit from the flash
+                    # lane (provisional=True) must NOT regress it. Skip — no new revision.
+                    summary["skipped"] += 1
                 else:
                     rec["revision"] = prev["revision"] + 1
                     to_append.append(rec)
@@ -223,20 +234,27 @@ class Store:
                 self._append(source, to_append)
         return summary
 
-    def confirm_periods(self, source, category, periods, *, by_source, ingested_at=None):
+    def confirm_periods(self, source, category, periods, *, keys=None, by_source, ingested_at=None):
         """
         Wave behaviour: when a backbone source (e.g. SIAM) confirms a month, flip the earlier
         provisional rows of ``source`` (e.g. Company flash) for those periods to
         ``provisional=False`` via a revision bump. Values are unchanged; only the flag flips.
+
+        ``keys`` (a set/list of ``(oem, metric)`` tuples) restricts confirmation to exactly the
+        OEM/metric combinations the backbone actually reported — so a flash row for something
+        SIAM never published is NOT falsely marked confirmed. ``keys=None`` confirms all.
         Returns the number of rows confirmed.
         """
         periods = set(periods)
+        keyset = {tuple(x) for x in keys} if keys is not None else None
         idx = self._latest_index(source)
         to_append = []
         for k, rec in idx.items():
             if rec["category"] != category or rec["period"] not in periods:
                 continue
             if not rec.get("provisional", False):
+                continue
+            if keyset is not None and (rec["oem"], rec["metric"]) not in keyset:
                 continue
             bumped = dict(rec)
             bumped["provisional"] = False

@@ -76,11 +76,18 @@ def redact_params(params):
 
 
 def redact_text(text):
-    """Best-effort scrub of bearer tokens / api keys that may appear inside a body/URL."""
+    """
+    Best-effort scrub of secrets that may appear inside a URL, an exception string or a
+    response body: ``Bearer <t>``, and ``token``/``api_key``/``secret``/``password`` in any of
+    the ``k=v``, ``?k=v``, ``k: v`` or ``"k":"v"`` forms (query param, header dump, or JSON body).
+    """
     if not text:
         return text
-    text = re.sub(r"(Bearer\s+)[A-Za-z0-9\-\._~\+/=]+", r"\1***", text)
-    text = re.sub(r"([?&](?:api[_-]?key|token|key|secret)=)[^&\s]+", r"\1***", text, flags=re.I)
+    text = re.sub(r"(?i)(Bearer\s+)[A-Za-z0-9\-\._~\+/=]+", r"\1***", text)
+    text = re.sub(
+        r'(?i)("?\b(?:api[_-]?key|apikey|access[_-]?key|secret[_-]?access[_-]?key|token|secret|password|passwd)"?\s*[:=]\s*"?)'
+        r'([^&\s"\']+)',
+        r"\1***", text)
     return text
 
 

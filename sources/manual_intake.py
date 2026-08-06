@@ -27,12 +27,10 @@ from lib.store import make_record
 from sources._common import min_confidence, pdf_to_json
 from sources.base import Adapter, register
 
-PREFIX_TO_SOURCE = {
-    "acma": "ACMA",
-    "siam": M.SRC_SIAM,
-    "fada": M.SRC_FADA,
-    "company": M.SRC_COMPANY,
-}
+# Manual drops are ALWAYS stored under a dedicated, namespaced source so they can never restate
+# (and thus corrupt) audited backbone series (SIAM / FADA / Company) via the natural key. The
+# filename prefix is kept only as a provenance sub-label, not mapped onto a backbone source id.
+MANUAL_SOURCE = "Manual"
 
 GENERIC_SCHEMA = {
     "type": "object",
@@ -92,7 +90,9 @@ class ManualIntakeAdapter(Adapter):
         for path in raw:
             fname = os.path.basename(path)
             prefix = fname.split("__", 1)[0].lower() if "__" in fname else "manual"
-            source = PREFIX_TO_SOURCE.get(prefix, "Manual")
+            # Namespace by prefix for provenance, but keep it firmly inside the Manual source so
+            # a mis-named file (e.g. siam__…) can never override the real SIAM/FADA/Company lanes.
+            source = f"{MANUAL_SOURCE}:{prefix}" if prefix != "manual" else MANUAL_SOURCE
             ext = os.path.splitext(fname)[1].lower()
 
             if ext != ".pdf":

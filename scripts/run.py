@@ -107,7 +107,8 @@ def main():
                      name, summ["added"], summ["restated"], summ["skipped"])
         for conf in res.confirms:
             n = store.confirm_periods(M.SRC_COMPANY, conf["category"], conf["periods"],
-                                      by_source=conf["by_source"], ingested_at=run_ts)
+                                      keys=conf.get("keys"), by_source=conf["by_source"],
+                                      ingested_at=run_ts)
             if n:
                 log.info("  [%s] confirmed %d flash rows for %s %s", name, n,
                          conf["category"], conf["periods"])

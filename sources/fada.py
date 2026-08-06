@@ -11,6 +11,8 @@ with metric ``Retail``.
 
 from __future__ import annotations
 
+import re
+
 from lib import fetch as fetch_mod
 from lib import model as M
 from lib.normalize import canonical
@@ -87,8 +89,8 @@ class FadaAdapter(Adapter):
             res.flag("extract_failed", str(meta))
             return
         period = data.get("period")
-        if not period or len(period) != 7:
-            res.flag("bad_period", f"FADA period '{period}' unparseable")
+        if not period or not re.match(r"^\d{4}-\d{2}$", str(period)):
+            res.flag("bad_period", f"FADA period '{period}' not YYYY-MM")
             return
         for row in data.get("rows", []):
             cat = (row.get("category") or "").lower()

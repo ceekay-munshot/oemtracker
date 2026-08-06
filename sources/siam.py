@@ -18,6 +18,9 @@ month to provisional=False (revision bump).
 
 from __future__ import annotations
 
+import re
+from collections import defaultdict
+
 from lib import fetch as fetch_mod
 from lib import model as M
 from lib.normalize import canonical
@@ -137,11 +140,11 @@ class SiamAdapter(Adapter):
             res.error(f"SIAM extraction failed: {meta}")
             return
         period = data.get("period")
-        if not period or len(period) != 7:
-            res.flag("bad_period", f"SIAM period '{period}' unparseable")
+        if not period or not re.match(r"^\d{4}-\d{2}$", str(period)):
+            res.flag("bad_period", f"SIAM period '{period}' not YYYY-MM")
             return
 
-        covered = set()
+        covered = defaultdict(set)  # category -> set of (oem, metric) SIAM actually reported
         for row in data.get("rows", []):
             cat = (row.get("category") or "").lower()
             if cat not in SIAM_CATEGORIES:
@@ -163,9 +166,11 @@ class SiamAdapter(Adapter):
                 M.SRC_SIAM, cat, M.SEG_ALL, oem, row["metric"], M.FREQ_M, period, row["value"],
                 oem_raw=oem_raw or oem, provisional=False, confidence=conf,
                 source_ref=f"{raw['url']}#sha={raw['sha'][:12]}"))
-            covered.add(cat)
+            if oem != M.OEM_INDUSTRY:
+                covered[cat].add((oem, row["metric"]))
 
-        # SIAM confirms this month -> flip Company(flash) rows for it to provisional=False.
-        for cat in covered:
-            res.confirms.append({"category": cat, "periods": [period], "by_source": M.SRC_SIAM})
+        # SIAM confirms this month -> flip only the Company(flash) (oem, metric) rows it reported.
+        for cat, keys in covered.items():
+            res.confirms.append({"category": cat, "periods": [period],
+                                 "keys": sorted(keys), "by_source": M.SRC_SIAM})
         res.stats = {"period": period, "categories": sorted(covered), "rows": len(data.get("rows", []))}

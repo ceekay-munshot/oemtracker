@@ -207,15 +207,26 @@ def audit(store, results, *, run_ts="", store_stats=None, tally=None):
                                  and r["metric"] == "Total"})
     for period in siam_delta_periods:
         by_cat = defaultdict(dict)
+        industry = {}
         for rec in store.latest_records(M.SRC_SIAM):
-            if rec["metric"] == "Total" and rec["period"] == period and rec["oem"] != M.OEM_INDUSTRY:
-                by_cat[rec["category"]][rec["oem"]] = rec["value"]
+            if rec["metric"] == "Total" and rec["period"] == period:
+                if rec["oem"] == M.OEM_INDUSTRY:
+                    industry[rec["category"]] = rec["value"]
+                else:
+                    by_cat[rec["category"]][rec["oem"]] = rec["value"]
         for cat, totals in by_cat.items():
-            shares = normalize.market_share(totals)
+            ind = industry.get(cat)
+            parts = sum(v for v in totals.values() if v)
+            shares = normalize.market_share(totals, ind)  # denominator = independent industry total
             s = sum(shares.values())
-            if shares and abs(s - 100.0) > 1.0:
+            if ind and abs(parts - ind) / ind > 0.02:
+                rep.add_flag("share_sum",
+                             f"{cat} {period}: OEM parts {parts:.0f} vs SIAM industry {ind:.0f} "
+                             f"({(parts - ind) / ind * 100:+.1f}%) — shares sum {s:.1f}% (OEMs may be missing)")
+            elif shares and not ind and abs(s - 100.0) > 1.0:
                 rep.add_flag("share_sum", f"{cat} {period}: shares sum to {s:.1f}% (expected ~100)")
-            share_lines.append(f"{cat} {period}: {len(shares)} OEMs, shares sum {s:.1f}%")
+            share_lines.append(f"{cat} {period}: {len(shares)} OEMs, shares sum {s:.1f}%"
+                               + (f" (industry denom {ind:.0f})" if ind else " (no industry total)"))
     rep.section("Market share (recomputed from SIAM totals)",
                 share_lines or ["no new SIAM totals to recompute share from"])
 

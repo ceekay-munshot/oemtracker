@@ -69,12 +69,18 @@ def month_to_year_key(period):
 
 # -- market share (recomputed from a single source's totals) ---------------------------
 
-def market_share(totals_by_oem):
+def market_share(totals_by_oem, industry_total=None):
     """
-    totals_by_oem: {oem: total_value}. Returns {oem: share_pct} summing to ~100 over the
-    reporting (non-null, positive) OEMs. Never trusts a pre-computed share block.
+    totals_by_oem: {oem: total_value}. Returns {oem: share_pct}. Never trusts a pre-computed
+    share block.
+
+    When ``industry_total`` (the independent SIAM ``__industry__`` total) is given it is used as
+    the denominator, so the shares are NOT a tautology: if some OEMs are missing, the parts no
+    longer sum to 100 and that gap is real signal (see the audit's share check). Without an
+    industry total it falls back to the sum of the present parts.
     """
-    denom = sum(v for v in totals_by_oem.values() if v)
+    parts = sum(v for v in totals_by_oem.values() if v)
+    denom = industry_total if industry_total else parts
     if not denom:
         return {}
     return {oem: (100.0 * v / denom) for oem, v in totals_by_oem.items() if v}

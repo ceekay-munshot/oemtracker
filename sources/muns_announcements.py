@@ -149,7 +149,10 @@ class MunsAnnouncementsAdapter(Adapter):
             metric = row.get("metric")
             val = row.get("value")
             seg = row.get("segment") or M.SEG_ALL
-            by_cat.setdefault(cat, {}).setdefault(metric, val if seg == M.SEG_ALL else None)
+            # Collect the category (__all__) total for each metric regardless of row order — a
+            # segment-level row appearing before the total must not null out the total.
+            if seg == M.SEG_ALL:
+                by_cat.setdefault(cat, {})[metric] = val
             res.records.append(make_record(
                 M.SRC_COMPANY, cat, seg, oem_name, metric, M.FREQ_M, period, val,
                 oem_raw=data.get("company") or item["oem"], provisional=True,

@@ -111,7 +111,8 @@ def test_provisional_wave(tmp):
     latest = [r for r in store.latest_records(M.SRC_COMPANY) if r["oem"] == "Maruti Suzuki"][0]
     check("flash row is provisional", latest["provisional"] is True)
 
-    n = store.confirm_periods(M.SRC_COMPANY, "pv", ["2026-06"], by_source=M.SRC_SIAM)
+    n = store.confirm_periods(M.SRC_COMPANY, "pv", ["2026-06"],
+                              keys={("Maruti Suzuki", "Total")}, by_source=M.SRC_SIAM)
     check("confirmation flips one row", n == 1, f"confirmed={n}")
     latest = sorted([r for r in store.iter_records(M.SRC_COMPANY)], key=lambda r: r["revision"])[-1]
     check("confirmed row provisional=False, revision bumped",
@@ -120,6 +121,36 @@ def test_provisional_wave(tmp):
     # append-only: the original provisional row is still there
     allrows = list(store.iter_records(M.SRC_COMPANY))
     check("history preserved (both revisions on disk)", len(allrows) == 2, f"rows={len(allrows)}")
+
+    # provisional is monotonic: re-emitting the SAME flash (provisional=True) must NOT regress
+    # the confirmed row back to provisional.
+    s = store.upsert_many(flash)
+    check("re-emit flash does not restate confirmed row",
+          s["added"] == 0 and s["restated"] == 0 and s["skipped"] == 1,
+          f"added={s['added']} restated={s['restated']} skipped={s['skipped']}")
+    latest = sorted(list(store.iter_records(M.SRC_COMPANY)), key=lambda r: r["revision"])[-1]
+    check("row stays confirmed (False), revision unchanged",
+          latest["provisional"] is False and latest["revision"] == 1,
+          f"prov={latest['provisional']} rev={latest['revision']}")
+    check("no extra revision written", len(list(store.iter_records(M.SRC_COMPANY))) == 2)
+
+    # a genuine value change still restates (monotonic guard only blocks pure prov False->True)
+    changed = [make_record(M.SRC_COMPANY, "pv", M.SEG_ALL, "Maruti Suzuki", "Total", M.FREQ_M,
+                           "2026-06", 111000, provisional=True, confidence=0.9)]
+    s = store.upsert_many(changed)
+    check("genuine value change still restates", s["restated"] == 1, f"restated={s['restated']}")
+
+    # over-confirmation guard: only (oem, metric) SIAM reported get confirmed
+    store2 = Store(os.path.join(os.path.dirname(store.root), "wave2"))
+    store2.upsert_many([
+        make_record(M.SRC_COMPANY, "pv", M.SEG_ALL, "Maruti Suzuki", "Total", M.FREQ_M, "2026-06", 110000, provisional=True),
+        make_record(M.SRC_COMPANY, "pv", M.SEG_ALL, "Tata Motors", "Total", M.FREQ_M, "2026-06", 50000, provisional=True),
+    ])
+    n = store2.confirm_periods(M.SRC_COMPANY, "pv", ["2026-06"],
+                               keys={("Maruti Suzuki", "Total")}, by_source=M.SRC_SIAM)
+    check("only SIAM-reported (oem,metric) confirmed", n == 1, f"confirmed={n}")
+    tata = [r for r in store2.latest_records(M.SRC_COMPANY) if r["oem"] == "Tata Motors"][0]
+    check("OEM SIAM never reported stays provisional", tata["provisional"] is True)
 
 
 def test_audit_hard_flag(tmp):
@@ -153,6 +184,48 @@ def test_broken_source_isolated():
     check("broken lane produced no records", len(res.records) == 0)
 
 
+def test_log_redaction():
+    print("\n[F] secret redaction in logs (Scrape.do token must never leak)")
+    import io
+    import logging
+    import requests as _rq
+    from lib import http_util
+    from lib.logging_util import setup
+    setup()
+
+    TOKEN = "SEKRET_TOKEN_ABC123XYZ"
+    buf = io.StringIO()
+    handler = logging.StreamHandler(buf)
+    root = logging.getLogger("oem")
+    root.addHandler(handler)
+
+    orig = http_util.requests.request
+
+    def boom(*a, **k):  # simulate a timeout whose message embeds the token-bearing URL
+        raise _rq.ConnectionError(
+            "HTTPSConnectionPool(host='api.scrape.do', port=443): Max retries exceeded with "
+            f"url: /?token={TOKEN}&url=https://siam.in (Caused by ConnectTimeoutError)")
+
+    http_util.requests.request = boom
+    err_msg = ""
+    try:
+        try:
+            http_util.request("GET", "https://api.scrape.do",
+                              params={"token": TOKEN, "url": "https://siam.in"},
+                              max_retries=0, label="scrapedo.get")
+        except http_util.NetworkError as e:
+            err_msg = str(e)
+    finally:
+        http_util.requests.request = orig
+        root.removeHandler(handler)
+
+    logs = buf.getvalue()
+    check("token absent from captured run logs", TOKEN not in logs)
+    check("token absent from raised NetworkError message", TOKEN not in err_msg, err_msg[:70])
+    he = http_util.HttpError(500, f"https://api.scrape.do/?token={TOKEN}", f"body token={TOKEN}")
+    check("token absent from HttpError message", TOKEN not in str(he))
+
+
 def main():
     tmp = tempfile.mkdtemp(prefix="oem_selftest_")
     try:
@@ -161,6 +234,7 @@ def main():
         test_provisional_wave(tmp)
         test_audit_hard_flag(tmp)
         test_broken_source_isolated()
+        test_log_redaction()
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

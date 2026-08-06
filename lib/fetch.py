@@ -18,7 +18,7 @@ import urllib.parse
 
 from lib import http_util as http
 from lib.config import secret, sources_config
-from lib.logging_util import get_logger
+from lib.logging_util import get_logger, redact_text
 
 log = get_logger("fetch")
 
@@ -106,7 +106,7 @@ def fetch_page(url, providers=None):
             log.warning("%s: auth failed — check its API key", name)
             continue
         except Exception as e:  # noqa: BLE001 — a flaky provider must not abort the run
-            log.warning("%s: error (%s) — trying next provider", name, e)
+            log.warning("%s: error (%s) — trying next provider", name, redact_text(str(e)))
             continue
         if res:
             log.info("fetched %s via %s (%d links, %d md-chars)", url, name,
@@ -122,7 +122,7 @@ def download(url, timeout=120):
         resp = http.get(url, timeout=timeout, accept="*/*", label="download")
         return resp.content
     except Exception as e:  # noqa: BLE001
-        log.error("download failed for %s: %s", url, e)
+        log.error("download failed for %s: %s", redact_text(url), redact_text(str(e)))
         return None
 
 

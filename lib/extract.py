@@ -160,7 +160,9 @@ def _validate(data, schema):
     try:
         import jsonschema  # noqa: PLC0415
     except ImportError:
-        return True, None  # validation optional if lib missing (still returns model JSON)
+        # Fail CLOSED: never accept/cache unvalidated LLM output just because the validator
+        # is missing (jsonschema is a hard dependency in requirements.txt).
+        return False, "jsonschema not installed — cannot validate; rejecting (fail closed)"
     try:
         jsonschema.validate(data, schema)
         return True, None

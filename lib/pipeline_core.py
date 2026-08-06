@@ -177,8 +177,12 @@ def aggregate_monthly_to(freq, dates, series_by_entity, industry=None):
         members[key].append(i)
 
     def is_partial(key, expected):
+        # Partial if the period is missing ANY member month — the trailing in-progress period
+        # OR an interior period with a gap (a month that was never reported). For the contiguous
+        # seeded history only the trailing period is ever incomplete, so this does not change the
+        # committed dashboard output; it correctly flags future data that has an interior hole.
         idxs = members[key]
-        return len(idxs) < expected and idxs[-1] == len(dates) - 1
+        return len(idxs) < expected
 
     periods = [k for k, _ in order]
     partial = [is_partial(k, e) for k, e in order]

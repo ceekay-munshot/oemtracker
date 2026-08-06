@@ -26,7 +26,9 @@ RETRY_STATUSES = {429, 500, 502, 503, 504}
 
 class HttpError(Exception):
     def __init__(self, status, url, body):
-        super().__init__(f"HTTP {status} from {url}: {truncate(body, 300)}")
+        # Redact any token/api_key/Bearer that may sit in the URL (e.g. Scrape.do's ?token=)
+        # or be echoed in the response body — the message is logged and re-raised.
+        super().__init__(f"HTTP {status} from {redact_text(url)}: {truncate(redact_text(body), 300)}")
         self.status = status
         self.url = url
         self.body = body
@@ -61,13 +63,16 @@ def request(method, url, *, headers=None, params=None, json_body=None, data=None
             resp = requests.request(method, url, headers=headers, params=params,
                                     json=json_body, data=data, timeout=timeout)
         except requests.RequestException as e:
+            # requests embeds the full request URL (incl. any ?token=) in the exception text —
+            # scrub it before logging or re-raising so secrets never reach the logs.
+            emsg = redact_text(str(e))
             if attempt <= max_retries:
                 wait = backoff_base ** attempt
-                log.warning("  network error (%s) — retry %d/%d in %.0fs", e, attempt, max_retries, wait)
+                log.warning("  network error (%s) — retry %d/%d in %.0fs", emsg, attempt, max_retries, wait)
                 time.sleep(wait)
                 continue
-            log.error("  network error (%s) — giving up after %d attempts", e, attempt)
-            raise NetworkError(str(e)) from e
+            log.error("  network error (%s) — giving up after %d attempts", emsg, attempt)
+            raise NetworkError(emsg) from e
 
         body_preview = truncate(redact_text(resp.text), 1000)
         log.info("← %s status=%s bytes=%d body=%s", tag, resp.status_code,

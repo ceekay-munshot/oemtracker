@@ -32,12 +32,14 @@ _cache = None  # {oem: {"symbol": str|None, "via": str, "ok": bool, "note": str}
 
 def symbol_candidates(meta):
     """
-    Candidate symbols to try, in order: explicit ``yf`` override, bare NSE symbol, the yfinance
-    NSE form ``<SYM>.NS``, then the BSE form ``<SYM>.BO`` (some names resolve only on BSE).
+    Candidate symbols to try, in order: explicit ``yf`` override, any explicit ``candidates``
+    list from config, the bare NSE symbol, the yfinance NSE form ``<SYM>.NS``, then the BSE
+    form ``<SYM>.BO`` (some names resolve only on BSE, via the numeric BSE code).
     """
     nse = meta.get("nse")
+    explicit = meta.get("candidates") or []
     out = []
-    for c in (meta.get("yf"), nse,
+    for c in (meta.get("yf"), *explicit, nse,
               f"{nse}.NS" if nse else None,
               f"{nse}.BO" if nse else None):
         if c and c not in out:

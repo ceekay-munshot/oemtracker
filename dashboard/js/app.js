@@ -3,6 +3,7 @@
 // active tab. All charts share the filter bar; each tab consumes the controls relevant to it.
 
 import { loadManifest, loadDataset, entityNames } from './data.js';
+import { loadFlash } from './flash.js';
 import { getState, setState, setStateSilent, subscribe, readHash } from './state.js';
 import { el, clearNode, seg } from './ui.js';
 import { disposeAllCards, resizeAllCards } from './trendcard.js';
@@ -314,6 +315,7 @@ async function boot() {
   window.__PALETTE = PALETTE; window.__oemColor = { colorAt };
 
   MANIFEST = await loadManifest();
+  await loadFlash().catch(() => {});   // provisional company-flash overlay (optional; absent-safe)
   readHash();
   // ensure a valid starting dataset & entities
   const s = getState();

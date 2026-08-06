@@ -136,15 +136,30 @@ export function lineOption(cfg) {
 
   const ecSeries = series.map((s, i) => {
     const color = s.color || colorAt(i);
-    // latest lit point
+    // A `dashed` series is a provisional overlay (e.g. the company flash tip): dashed line, a
+    // HOLLOW latest marker, and it connects across the gap to the confirmed line. Non-dashed
+    // series render exactly as before (unchanged look for every existing chart).
+    const dashed = !!s.dashed;
     let li = -1;
     for (let j = s.values.length - 1; j >= 0; j--) { if (s.values[j] != null) { li = j; break; } }
     const mark = li >= 0 ? {
-      symbol: 'circle', symbolSize: 8, silent: true,
+      symbol: 'circle', symbolSize: dashed ? 9 : 8, silent: true,
       data: [{ coord: [li, s.values[li]] }],
-      itemStyle: { color: '#fff', borderColor: color, borderWidth: 2.5, shadowColor: hexA(color, .5), shadowBlur: 10 },
+      itemStyle: dashed
+        ? { color: 'rgba(255,255,255,0)', borderColor: color, borderWidth: 2, borderType: 'dashed' }
+        : { color: '#fff', borderColor: color, borderWidth: 2.5, shadowColor: hexA(color, .5), shadowBlur: 10 },
       label: { show: false },
     } : undefined;
+    if (dashed) {
+      return {
+        name: s.name, type: 'line', data: s.values, smooth: 0.35, smoothMonotone: 'x',
+        showSymbol: false, symbolSize: 6, connectNulls: true, z: 5,
+        lineStyle: { width: 2, cap: 'round', join: 'round', color, type: 'dashed', opacity: 0.9 },
+        itemStyle: { color },
+        emphasis: { focus: 'series', lineStyle: { width: 2.6 } },
+        ...(mark ? { markPoint: mark } : {}),
+      };
+    }
     return {
       name: s.name, type: 'line', data: s.values, smooth: 0.35, smoothMonotone: 'x',
       showSymbol: false, symbolSize: 6, connectNulls: false,

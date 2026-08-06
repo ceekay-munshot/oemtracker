@@ -1,6 +1,6 @@
 # Auto OEM Trends — Audit Report
 
-- Run: `2026-08-06T10:17:31.307038+00:00`
+- Run: `2026-08-06T11:02:43.349995+00:00`
 - Publish gate: ✅ clean — safe to commit
 - LLM tally: 0 calls, ~$0.000 (0+0 tok)
 

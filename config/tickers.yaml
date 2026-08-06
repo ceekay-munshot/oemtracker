@@ -1,0 +1,39 @@
+# config/tickers.yaml — OEM -> NSE symbol, for the listed-company lanes (A flash, D financials,
+# E concalls). Verify symbols against the Muns API at build time; unlisted makers are SIAM-only
+# (no ticker) and are covered by the SIAM backbone lane instead.
+#
+# Each entry: canonical OEM name -> { nse: <symbol>, category: [<vehicle categories it sells>] }
+# The `category` hint helps route extracted per-OEM sales to the right table.
+
+tickers:
+  Maruti Suzuki:        { nse: MARUTI,      category: [pv] }
+  Tata Motors:          { nse: TATAMOTORS,  category: [pv, mhcv, lcv] }
+  Mahindra & Mahindra:  { nse: M&M,         category: [pv, mhcv, lcv, 3w, tractors] }
+  Hyundai Motor India:  { nse: HYUNDAI,     category: [pv] }
+  Bajaj Auto:           { nse: BAJAJ-AUTO,  category: [2w, 3w] }
+  Hero MotoCorp:        { nse: HEROMOTOCO,  category: [2w] }
+  TVS Motor:            { nse: TVSMOTOR,    category: [2w, 3w] }
+  Eicher Motors:        { nse: EICHERMOT,   category: [2w, mhcv, lcv] }
+  Ashok Leyland:        { nse: ASHOKLEY,    category: [mhcv, lcv] }
+  Escorts Kubota:       { nse: ESCORTS,     category: [tractors] }
+  SML Isuzu:            { nse: SMLISUZU,    category: [mhcv, lcv] }
+  Force Motors:         { nse: FORCEMOTORS, category: [pv, lcv] }
+  Atul Auto:            { nse: ATULAUTO,    category: [3w] }
+  Olectra Greentech:    { nse: OLECTRA,     category: [mhcv] }
+  Ola Electric:         { nse: OLAELEC,     category: [2w] }
+  Ather Energy:         { nse: ATHERENERG,  category: [2w] }
+
+# SIAM-only (unlisted) — no ticker; sales come from the SIAM backbone lane:
+#   Honda / HMSI, Toyota Kirloskar, Kia India, VW / Skoda, Yamaha,
+#   Suzuki Motorcycle, Renault, Nissan
+siam_only:
+  - Honda Cars India
+  - Honda Motorcycle & Scooter India
+  - Toyota Kirloskar Motor
+  - Kia India
+  - Volkswagen India
+  - Skoda Auto India
+  - India Yamaha Motor
+  - Suzuki Motorcycle India
+  - Renault India
+  - Nissan Motor India

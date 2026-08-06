@@ -1,0 +1,101 @@
+name: Update Auto OEM Trends data
+
+# Monthly, hands-off data refresh (mirrors the sister ATM pipeline):
+#   * 3rd  @ 06:00 UTC — new-month company (flash) announcements
+#   * 18th @ 06:00 UTC — SIAM + FADA + revisions (SIAM confirms flash -> provisional:false)
+# Also runs on demand, and on code changes to the pipeline (to rebuild data/ from the store).
+on:
+  schedule:
+    - cron: '0 6 3,18 * *'
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - 'sources/**'
+      - 'lib/**'
+      - 'scripts/**'
+      - '.github/workflows/update-auto.yml'
+
+# Clean run commits data/ (Cloudflare deploys on push); a flagged run opens a PR instead.
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-auto
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Persist the content-addressed OCR/LLM cache across runs so unchanged PDFs are never
+      # re-OCR'd or re-charged. (The canonical store itself is committed, so it always persists.)
+      - name: Restore extraction cache
+        uses: actions/cache@v4
+        with:
+          path: data/cache
+          key: oem-extract-cache-${{ github.run_id }}
+          restore-keys: |
+            oem-extract-cache-
+
+      - name: Run pipeline (fetch → extract → store → audit → build)
+        env:
+          MUNS_TOKEN: ${{ secrets.MUNS_TOKEN }}
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+          SCRAPEDO_API_KEY: ${{ secrets.SCRAPEDO_API_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          BEDROCK_API_KEY: ${{ secrets.BEDROCK_API_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          BEDROCK_CLAUDE_MODEL_ID: ${{ secrets.BEDROCK_CLAUDE_MODEL_ID }}
+          SIAM_USERNAME: ${{ secrets.SIAM_USERNAME }}
+          SIAM_PASSWORD: ${{ secrets.SIAM_PASSWORD }}
+        run: python run.py
+
+      - name: Read audit gate
+        id: gate
+        run: |
+          HARD=$(python -c "import json;print(str(json.load(open('data/audit_status.json'))['hard']).lower())")
+          echo "hard=$HARD" >> "$GITHUB_OUTPUT"
+          echo "Audit hard flag: $HARD"
+
+      # ---- CLEAN: commit data/ straight to main (Cloudflare deploys on push) ----
+      - name: Commit data (clean run)
+        if: steps.gate.outputs.hard == 'false'
+        run: |
+          git config user.name  "oem-bot"
+          git config user.email "oem-bot@users.noreply.github.com"
+          git add data/
+          if git diff --cached --quiet; then
+            echo "No data changes — nothing to commit."
+          else
+            git commit -m "data: monthly refresh $(date -u +%Y-%m-%d) [skip ci]"
+            git push
+          fi
+
+      # ---- FLAGGED: open a PR with the audit report; a bad file never reaches main ----
+      - name: Open review PR (flagged run)
+        if: steps.gate.outputs.hard == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          add-paths: data/
+          branch: auto/data-review
+          commit-message: "data: monthly refresh needs review"
+          title: "Auto OEM Trends data — review required"
+          body-path: data/audit_report.md
+          labels: data-review
+          delete-branch: true

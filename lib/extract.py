@@ -76,7 +76,7 @@ class LLMExtractor:
         self._client = boto3.client("bedrock-runtime", region_name=region)
         return self._client
 
-    def extract(self, text, schema, instruction, *, hint=None, max_tokens=4096, retries=2):
+    def extract(self, text, schema, instruction, *, hint=None, max_tokens=8192, retries=2):
         """
         Extract strict JSON matching ``schema`` from ``text``. Returns the validated dict.
         Raises ExtractionUnavailable if no credential; other failures raise ValueError.

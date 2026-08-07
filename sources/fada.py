@@ -48,10 +48,12 @@ EXTRACT_SCHEMA = {
 }
 
 INSTRUCTION = (
-    "This is a FADA monthly RETAIL registration press release for India. Extract retail "
-    "registration counts by category (pv, 2w, 3w, cv, tractors) and, where given, by OEM. "
-    "Use oem='Total' for a category total. Set 'period' to the retail MONTH as YYYY-MM. Each "
-    "figure needs a confidence and its source line. These are RETAIL (not wholesale) numbers.")
+    "This is a FADA monthly RETAIL registration press release for India. ALWAYS return a 'rows' "
+    "array. Include one row per category (pv, 2w, 3w, cv, tractors) with oem='Total' for the "
+    "category total, PLUS the maker-wise rows the release lists under each category. Set 'period' "
+    "to the retail MONTH as YYYY-MM and give each figure a confidence in [0,1]. Keep the output "
+    "COMPACT: do NOT include source-line text or any field not in the schema. Report the retail "
+    "registration count in 'value'. These are RETAIL (not wholesale) numbers.")
 
 
 @register

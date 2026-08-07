@@ -117,7 +117,10 @@ class MunsAnnouncementsAdapter(Adapter):
             matched = 0
             for ann in _flatten_announcements(anns):
                 subject = _first(ann, ["subject", "headline", "title", "desc", "descriptor"], "")
-                if not any(k in str(subject).lower() for k in keywords):
+                # Match keywords against ALL the text, not just the first field: some filings carry
+                # a generic title ("Press Release") with the real subject ("… Monthly Sales - July
+                # 2026") only in `desc` — e.g. Tata's post-demerger TMPV/TMCV monthly sales PRs.
+                if not any(k in _subject_text(ann).lower() for k in keywords):
                     continue
                 pdf_url = _first(ann, ["attachment", "pdf", "fileUrl", "file_url", "link", "url", "attachmentUrl"])
                 if not pdf_url:
@@ -281,6 +284,15 @@ def _first(d, keys, default=None):
         if d.get(k):
             return d[k]
     return default
+
+
+def _subject_text(ann):
+    """All human-readable text on an announcement, combined — used for keyword matching so a
+    filing with a generic title but the real subject in `desc` still matches (Tata TMPV/TMCV)."""
+    if not isinstance(ann, dict):
+        return ""
+    parts = [str(ann.get(k, "")) for k in ("subject", "headline", "title", "desc", "descriptor")]
+    return " ".join(p for p in parts if p and p != "None").strip()
 
 
 def _month(s):

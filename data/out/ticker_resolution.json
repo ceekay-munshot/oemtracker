@@ -36,7 +36,7 @@
     "via": "financial_tables"
   },
   "Force Motors": {
-    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/FORCEMOTORS.BO: {\"statusCode\":404,\"timestamp\":\"2026-08-07T08:52:19.249Z\",\"path\":\"/filings/",
+    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/FORCEMOTORS.BO: {\"statusCode\":404,\"timestamp\":\"2026-08-07T09:44:17.095Z\",\"path\":\"/filings/",
     "ok": false,
     "symbol": null,
     "via": "financial_tables"
@@ -78,7 +78,7 @@
     "via": "financial_tables"
   },
   "SML Isuzu": {
-    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/SMLISUZU.BO: {\"statusCode\":404,\"timestamp\":\"2026-08-07T08:52:16.175Z\",\"path\":\"/filings/fin",
+    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/SMLISUZU.BO: {\"statusCode\":404,\"timestamp\":\"2026-08-07T09:44:14.228Z\",\"path\":\"/filings/fin",
     "ok": false,
     "symbol": null,
     "via": "financial_tables"

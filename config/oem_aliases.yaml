@@ -39,10 +39,27 @@ aliases:
     - VECV-Eicher
     - Volvo Eicher Commercial Vehicles
 
+  # Oct-2025 demerger: Tata Motors split into a PV co. and a CV co., which file monthly sales
+  # separately (TMPV / TMCV). Both continue the single seeded "Tata Motors" line — PV rows land
+  # in the pv category, CV rows in mhcv/lcv/cv, so there is no collision on one entity.
   Tata Motors:
     - TELCO
     - Tata Engineering
     - Tata Motors Ltd
+    - Tata Motors Limited
+    - Tata Motors PV
+    - Tata Motors Passenger Vehicles
+    - Tata Motors Passenger Vehicles Limited
+    - Tata Motors CV
+    - Tata Motors Commercial Vehicles
+    - TML Commercial Vehicles Limited
+    - TML Commercial Vehicles
+
+  # SIAM lists Hyundai's PV entity as "Hyundai Motor"; the disclosure/filing name is longer.
+  Hyundai Motor:
+    - Hyundai Motor India
+    - Hyundai Motor India Ltd
+    - Hyundai Motor India Limited
 
   Mahindra & Mahindra:
     - M&M

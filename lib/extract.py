@@ -150,9 +150,21 @@ def _first_tool_input(payload):
 
 
 def _retry_turn(assistant_payload, correction):
+    """Append the assistant's turn + our correction. If the assistant emitted a `tool_use`
+    (it always does here — ``tool_choice`` forces the `emit` tool), the API REQUIRES the next
+    user turn to OPEN with a matching `tool_result`; a plain-text reply is rejected with
+    "tool_use ids were found without tool_result blocks immediately after". So carry the
+    correction inside a tool_result. Fall back to plain text only if there was no tool_use."""
+    content = assistant_payload.get("content", []) or []
+    tool_use_id = next((b.get("id") for b in content if b.get("type") == "tool_use"), None)
+    if tool_use_id:
+        user_content = [{"type": "tool_result", "tool_use_id": tool_use_id,
+                         "content": [{"type": "text", "text": correction}]}]
+    else:
+        user_content = [{"type": "text", "text": correction}]
     return [
-        {"role": "assistant", "content": assistant_payload.get("content", [])},
-        {"role": "user", "content": [{"type": "text", "text": correction}]},
+        {"role": "assistant", "content": content},
+        {"role": "user", "content": user_content},
     ]
 
 

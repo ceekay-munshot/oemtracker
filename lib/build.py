@@ -29,6 +29,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from lib import model as M  # noqa: E402
 from lib import pipeline_core as pc  # noqa: E402
+from lib.normalize import canonical  # noqa: E402
 from lib.store import Store  # noqa: E402
 
 
@@ -197,7 +198,12 @@ def build_overlays(store, out_dir):
     # ---- Company(BSE/NSE) flash — per-OEM monthly sales, kept in its own lane ---------
     company = defaultdict(lambda: defaultdict(dict))  # category -> oem -> {period: {metric,value,...}}
     for rec in store.latest_records(M.SRC_COMPANY):
-        company[rec["category"]][rec["oem"]].setdefault(rec["period"], {})[rec["metric"]] = {
+        # Canonicalize the live OEM name so the overlay lines up with the seeded SIAM entity —
+        # e.g. the post-demerger "Tata Motors Passenger Vehicles Limited" / "Tata Motors CV" both
+        # fold onto "Tata Motors". Unmapped names pass through unchanged (still shown, just no
+        # overlay match). Done at build time so already-stored raw names render without a re-run.
+        oem = canonical(rec["oem"])[0]
+        company[rec["category"]][oem].setdefault(rec["period"], {})[rec["metric"]] = {
             "value": rec["value"], "provisional": rec.get("provisional", False),
             "confidence": rec.get("confidence", 1.0), "source_ref": rec.get("source_ref"),
         }
@@ -211,7 +217,8 @@ def build_overlays(store, out_dir):
     # ---- FADA retail ------------------------------------------------------------------
     fada = defaultdict(lambda: defaultdict(dict))
     for rec in store.latest_records(M.SRC_FADA):
-        fada[rec["category"]][rec["oem"]][rec["period"]] = {
+        oem = canonical(rec["oem"])[0]  # same canonicalization as the flash lane
+        fada[rec["category"]][oem][rec["period"]] = {
             "value": rec["value"], "provisional": rec.get("provisional", False),
             "confidence": rec.get("confidence", 1.0)}
     written.append(_write_json(out_dir, "fada_retail.json", {

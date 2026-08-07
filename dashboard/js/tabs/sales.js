@@ -19,6 +19,17 @@ function combineNotes(a, b) {
   return a || b || null;
 }
 
+// Some SIAM "monthly" series are really QUARTERLY: the whole quarter is parked in the quarter-end
+// month with 0s in the two months between (e.g. Tata PV). A monthly flash tip on such a series
+// would hang a one-month figure off a three-month total — misleading — so we withhold the tip for
+// those entities. Tell-tale: a large fraction of reported months are exactly 0.
+function looksQuarterly(values) {
+  const reported = (values || []).filter((v) => v != null);
+  if (reported.length < 6) return false;
+  const zeros = reported.filter((v) => v === 0).length;
+  return zeros / reported.length > 0.4;   // quarterly-on-monthly ≈ ⅔ zeros; genuine monthly ≈ 0
+}
+
 export function render(root, ctx) {
   const { ds, state, names } = ctx;
   const { metric, freq, valueMode: mode, range } = state;
@@ -40,7 +51,9 @@ export function render(root, ctx) {
   const tip = flashEligible ? flashTip(ds, metric, ents) : null;
   const actions = [];
   let flashNote = null;
-  if (tip) {
+  // An entity can take a flash tip only if it has flash data AND a genuine-monthly base series.
+  const canFlash = (e, i) => !!(tip && tip.byId[e.id] && !looksQuarterly(baseSeries[i].values));
+  if (tip && ents.some(canFlash)) {
     actions.push(el('label', { class: 'flash-toggle', title: 'Show/hide the provisional company-disclosure overlay' }, [
       el('input', { type: 'checkbox', ...(state.showFlash ? { checked: true } : {}),
         onchange: (e) => setState({ showFlash: e.target.checked }) }),
@@ -54,7 +67,7 @@ export function render(root, ctx) {
       const flashSeries = [];
       ents.forEach((e, i) => {
         const t = tip.byId[e.id];
-        if (!t) return;                                                   // this OEM has no flash — skip
+        if (!t || looksQuarterly(baseSeries[i].values)) return;           // no flash, or quarterly base — skip
         const bv = baseSeries[i].values;
         const vals = allPeriods.map(() => null);
         let anchor = -1;                                                  // last confirmed SIAM point

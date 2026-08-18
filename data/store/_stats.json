@@ -1,12 +1,12 @@
 {
   "sources": {
     "Company(BSE/NSE)": {
-      "records": 118,
-      "latest_keys": 118
+      "records": 127,
+      "latest_keys": 127
     },
     "FADA": {
-      "records": 67,
-      "latest_keys": 67
+      "records": 69,
+      "latest_keys": 69
     },
     "Internal-DB(historical)": {
       "records": 15915,

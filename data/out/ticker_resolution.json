@@ -9,13 +9,13 @@
     "note": "",
     "ok": true,
     "symbol": "ATHERENERG",
-    "via": "financial_tables"
+    "via": "corp_announcements"
   },
   "Atul Auto": {
     "note": "",
     "ok": true,
     "symbol": "ATULAUTO",
-    "via": "financial_tables"
+    "via": "corp_announcements"
   },
   "Bajaj Auto": {
     "note": "",
@@ -36,7 +36,7 @@
     "via": "financial_tables"
   },
   "Force Motors": {
-    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/FORCEMOTORS.BO: {\"statusCode\":404,\"timestamp\":\"2026-08-18T06:55:14.344Z\",\"path\":\"/filings/",
+    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/FORCEMOTORS.BO: {\"statusCode\":404,\"timestamp\":\"2026-09-03T10:56:58.432Z\",\"path\":\"/filings/",
     "ok": false,
     "symbol": null,
     "via": "financial_tables"
@@ -69,16 +69,16 @@
     "note": "",
     "ok": true,
     "symbol": "OLAELEC",
-    "via": "financial_tables"
+    "via": "corp_announcements"
   },
   "Olectra Greentech": {
     "note": "",
     "ok": true,
     "symbol": "OLECTRA",
-    "via": "financial_tables"
+    "via": "corp_announcements"
   },
   "SML Isuzu": {
-    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/SMLISUZU.BO: {\"statusCode\":404,\"timestamp\":\"2026-08-18T06:55:11.282Z\",\"path\":\"/filings/fin",
+    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/SMLISUZU.BO: {\"statusCode\":404,\"timestamp\":\"2026-09-03T10:56:55.508Z\",\"path\":\"/filings/fin",
     "ok": false,
     "symbol": null,
     "via": "financial_tables"

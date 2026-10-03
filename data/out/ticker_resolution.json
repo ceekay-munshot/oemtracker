@@ -3,7 +3,7 @@
     "note": "",
     "ok": true,
     "symbol": "ASHOKLEY",
-    "via": "financial_tables"
+    "via": "corp_announcements"
   },
   "Ather Energy": {
     "note": "",
@@ -27,7 +27,7 @@
     "note": "",
     "ok": true,
     "symbol": "EICHERMOT",
-    "via": "financial_tables"
+    "via": "corp_announcements"
   },
   "Escorts Kubota": {
     "note": "",
@@ -36,7 +36,7 @@
     "via": "corp_announcements"
   },
   "Force Motors": {
-    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/FORCEMOTORS.BO: {\"statusCode\":404,\"timestamp\":\"2026-09-18T10:50:56.117Z\",\"path\":\"/filings/",
+    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/FORCEMOTORS.BO: {\"statusCode\":404,\"timestamp\":\"2026-10-03T11:33:29.919Z\",\"path\":\"/filings/",
     "ok": false,
     "symbol": null,
     "via": "financial_tables"
@@ -78,7 +78,7 @@
     "via": "corp_announcements"
   },
   "SML Isuzu": {
-    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/SMLISUZU.BO: {\"statusCode\":404,\"timestamp\":\"2026-09-18T10:50:52.985Z\",\"path\":\"/filings/fin",
+    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/SMLISUZU.BO: {\"statusCode\":404,\"timestamp\":\"2026-10-03T11:33:27.139Z\",\"path\":\"/filings/fin",
     "ok": false,
     "symbol": null,
     "via": "financial_tables"

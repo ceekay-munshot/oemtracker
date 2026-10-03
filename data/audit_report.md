@@ -1,8 +1,8 @@
 # Auto OEM Trends — Audit Report
 
-- Run: `2026-09-18T10:44:28.975916+00:00`
+- Run: `2026-10-03T11:15:04.645279+00:00`
 - Publish gate: ✅ clean — safe to commit
-- LLM tally: 27 calls, ~$0.796 (189787+15121 tok)
+- LLM tally: 8 calls, ~$0.440 (124775+4394 tok)
 
 ## Store
 - `Company(BSE/NSE)`: 186 records, 186 unique keys
@@ -11,11 +11,38 @@
 - `SIAM`: 56944 records, 56944 unique keys
 
 ## Flags
-- **low_confidence**: 1
-    - company_announcements: MARUTI pv/Total=219220 conf=0.50
-- **ticker_unresolved**: 9
+- **extract_failed**: 26
+    - fada: OCR unavailable or empty
+    - company_announcements: MARUTI: OCR unavailable or empty
+    - company_announcements: MARUTI: OCR unavailable or empty
+    - company_announcements: MARUTI: OCR unavailable or empty
+    - company_announcements: TMPV: OCR unavailable or empty
+    - company_announcements: TMPV: OCR unavailable or empty
+    - company_announcements: TMPV: OCR unavailable or empty
+    - company_announcements: TMCV: OCR unavailable or empty
+    - company_announcements: TMCV: OCR unavailable or empty
+    - company_announcements: M&M: OCR unavailable or empty
+    - company_announcements: M&M: OCR unavailable or empty
+    - company_announcements: HYUNDAI: OCR unavailable or empty
+    - company_announcements: HYUNDAI: OCR unavailable or empty
+    - company_announcements: BAJAJ-AUTO: OCR unavailable or empty
+    - company_announcements: BAJAJ-AUTO: OCR unavailable or empty
+    - company_announcements: TVSMOTOR: OCR unavailable or empty
+    - company_announcements: TVSMOTOR: OCR unavailable or empty
+    - company_announcements: EICHERMOT: OCR unavailable or empty
+    - company_announcements: EICHERMOT: OCR unavailable or empty
+    - company_announcements: EICHERMOT: OCR unavailable or empty
+    - company_announcements: ASHOKLEY: OCR unavailable or empty
+    - company_announcements: ASHOKLEY: OCR unavailable or empty
+    - company_announcements: ESCORTS: OCR unavailable or empty
+    - company_announcements: ESCORTS: OCR unavailable or empty
+    - company_announcements: ATULAUTO: OCR unavailable or empty
+    - …and 1 more
+- **ticker_unresolved**: 11
     - company_announcements: SML Isuzu: no candidate symbol resolved on Muns
     - company_announcements: Force Motors: no candidate symbol resolved on Muns
+    - financials: Eicher Motors: no candidate symbol resolved on Muns
+    - financials: Ashok Leyland: no candidate symbol resolved on Muns
     - financials: Escorts Kubota: no candidate symbol resolved on Muns
     - financials: SML Isuzu: no candidate symbol resolved on Muns
     - financials: Force Motors: no candidate symbol resolved on Muns
@@ -23,53 +50,17 @@
     - financials: Olectra Greentech: no candidate symbol resolved on Muns
     - financials: Ola Electric: no candidate symbol resolved on Muns
     - financials: Ather Energy: no candidate symbol resolved on Muns
-- **unmapped_oem**: 51
-    - fada: FADA: 'HONDA MOTORCYCLE AND SCOOTER INDIA (P) LTD' not in alias map (kept)
-    - fada: FADA: 'SUZUKI MOTORCYCLE INDIA PVT LTD' not in alias map (kept)
-    - fada: FADA: 'INDIA YAMAHA MOTOR PVT LTD' not in alias map (kept)
-    - fada: FADA: 'ATHER ENERGY LTD' not in alias map (kept)
-    - fada: FADA: 'OLA ELECTRIC TECHNOLOGIES PVT LTD' not in alias map (kept)
-    - fada: FADA: 'GREAVES ELECTRIC MOBILITY LTD' not in alias map (kept)
-    - fada: FADA: 'RIVER MOBILITY PVT LTD' not in alias map (kept)
-    - fada: FADA: 'BGAUSS AUTO PRIVATE LIMITED' not in alias map (kept)
-    - fada: FADA: 'CLASSIC LEGENDS PVT LTD' not in alias map (kept)
-    - fada: FADA: 'PIAGGIO VEHICLES PVT LTD' not in alias map (kept)
-    - fada: FADA: 'Others Including EV' not in alias map (kept)
-    - fada: FADA: 'MAHINDRA & MAHINDRA LIMITED' not in alias map (kept)
-    - fada: FADA: 'MAHINDRA LAST MILE MOBILITY LTD' not in alias map (kept)
-    - fada: FADA: 'PIAGGIO VEHICLES PVT LTD' not in alias map (kept)
-    - fada: FADA: 'YC ELECTRIC VEHICLE' not in alias map (kept)
-    - fada: FADA: 'DILLI ELECTRIC AUTO PVT LTD' not in alias map (kept)
-    - fada: FADA: 'SAERA ELECTRIC AUTO PVT LTD' not in alias map (kept)
-    - fada: FADA: 'MINI METRO EV L.L.P' not in alias map (kept)
-    - fada: FADA: 'J. S. AUTO (P) LTD' not in alias map (kept)
-    - fada: FADA: 'Others including EV' not in alias map (kept)
-    - fada: FADA: 'MAHINDRA & MAHINDRA LIMITED' not in alias map (kept)
-    - fada: FADA: 'VE COMMERCIAL VEHICLES LTD' not in alias map (kept)
-    - fada: FADA: 'FORCE MOTORS LIMITED' not in alias map (kept)
-    - fada: FADA: 'DAIMLER INDIA COMMERCIAL VEHICLES PVT. LTD' not in alias map (kept)
-    - fada: FADA: 'SML MAHINDRA LTD' not in alias map (kept)
-    - …and 26 more
 
 ## Lane status
-- `fada` (lane C): ok · records=69 flags=49
+- `fada` (lane C): ok · records=0 flags=1
 - `manual` (lane Manual): skipped — no source data available (fetch returned nothing) · records=0 flags=0
-- `company_announcements` (lane A): ok · records=50 flags=5
+- `company_announcements` (lane A): ok · records=0 flags=27
 - `concalls` (lane E): skipped — no source data available (fetch returned nothing) · records=0 flags=0
-- `financials` (lane D): ok · records=0 flags=7
+- `financials` (lane D): ok · records=0 flags=9
 - `siam` (lane B): skipped — no source data available (fetch returned nothing) · records=0 flags=0
 
 ## Idempotency
 - no duplicate natural keys — store is idempotent
 
-## Arithmetic
-- new data arithmetic consistent
-
-## YoY / MoM sanity
-- 0 implausible MoM/YoY swings flagged (0 hard / 0 flash-review)
-
-## Cross-source divergence (informational)
-- no material company-vs-SIAM divergence in new data
-
-## Market share (recomputed from SIAM totals)
-- no new SIAM totals to recompute share from
+## New data
+- no new live records this run — last good data intact

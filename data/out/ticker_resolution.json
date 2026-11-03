@@ -9,13 +9,13 @@
     "note": "",
     "ok": true,
     "symbol": "ATHERENERG",
-    "via": "corp_announcements"
+    "via": "financial_tables"
   },
   "Atul Auto": {
     "note": "",
     "ok": true,
     "symbol": "ATULAUTO",
-    "via": "corp_announcements"
+    "via": "financial_tables"
   },
   "Bajaj Auto": {
     "note": "",
@@ -36,7 +36,7 @@
     "via": "financial_tables"
   },
   "Force Motors": {
-    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/FORCEMOTORS.BO: {\"statusCode\":404,\"timestamp\":\"2026-10-18T10:44:52.995Z\",\"path\":\"/filings/",
+    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/FORCEMOTORS.BO: {\"message\":\"Stock not found: \\\"FORCEMOTORS.BO\\\". Please verify the ticker ",
     "ok": false,
     "symbol": null,
     "via": "financial_tables"
@@ -69,16 +69,16 @@
     "note": "",
     "ok": true,
     "symbol": "OLAELEC",
-    "via": "corp_announcements"
+    "via": "financial_tables"
   },
   "Olectra Greentech": {
     "note": "",
     "ok": true,
     "symbol": "OLECTRA",
-    "via": "corp_announcements"
+    "via": "financial_tables"
   },
   "SML Isuzu": {
-    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/SMLISUZU.BO: {\"statusCode\":404,\"timestamp\":\"2026-10-18T10:44:49.793Z\",\"path\":\"/filings/fin",
+    "note": "HTTP 404 from https://devde.muns.io/filings/financial_tables/markdown/SMLISUZU.BO: {\"message\":\"Stock not found: \\\"SMLISUZU.BO\\\". Please verify the ticker symbol",
     "ok": false,
     "symbol": null,
     "via": "financial_tables"
